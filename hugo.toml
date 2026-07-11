@@ -1,0 +1,24 @@
+baseURL = "https://naoyamd.github.io/daily-signal/"
+languageCode = "ja-jp"
+defaultContentLanguage = "ja"
+title = "Daily Signal"
+enableRobotsTXT = true
+summaryLength = 42
+
+[pagination]
+  pagerSize = 12
+
+[outputs]
+  home = ["HTML", "RSS"]
+
+[taxonomies]
+  tag = "tags"
+  category = "categories"
+
+[params]
+  description = "論文、技術、科学、社会の動きを短く整理する個人向けデイリーダイジェスト。"
+  github = "https://github.com/naoyamd/daily-signal"
+
+[markup.goldmark.renderer]
+  unsafe = false
+

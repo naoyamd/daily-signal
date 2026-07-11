@@ -1,0 +1,36 @@
+site:
+  timezone: Asia/Tokyo
+  language: ja
+  max_items: 8
+  lookback_hours: 48
+
+topics:
+  - name: AI・ソフトウェア
+    keywords: [AI, artificial intelligence, machine learning, LLM, agent, software, security, open source]
+  - name: 科学・工学
+    keywords: [science, research, engineering, physics, materials, energy, space, climate]
+  - name: ビジネス・社会
+    keywords: [business, economy, policy, regulation, society, market]
+
+sources:
+  - name: arXiv AI
+    url: https://rss.arxiv.org/rss/cs.AI
+    category: 論文
+    weight: 1.1
+  - name: arXiv Machine Learning
+    url: https://rss.arxiv.org/rss/cs.LG
+    category: 論文
+    weight: 1.1
+  - name: Hacker News
+    url: https://hnrss.org/frontpage
+    category: テクノロジー
+    weight: 0.9
+  - name: MIT Technology Review
+    url: https://www.technologyreview.com/feed/
+    category: テクノロジー
+    weight: 1.0
+  - name: NASA Breaking News
+    url: https://www.nasa.gov/news-release/feed/
+    category: 科学
+    weight: 1.0
+
