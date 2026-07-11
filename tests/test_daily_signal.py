@@ -22,6 +22,23 @@ class DailySignalTests(unittest.TestCase):
         self.assertEqual(result[0].source, "B")
         self.assertEqual(rank([first], config, {first.id}, now), [])
 
+    def test_sunday_editorial_boosts_design_over_chinese_model_detail(self):
+        now = datetime(2026, 7, 12, 3, tzinfo=timezone.utc)  # Sunday in Japan
+        config = {
+            "site": {"lookback_hours": 48, "timezone": "Asia/Tokyo"},
+            "topics": [],
+            "sunday_editorial": {
+                "priority_keywords": ["design", "aerospace"],
+                "deprioritize_keywords": ["Qwen"],
+                "priority_boost": 0.65,
+                "deprioritize_penalty": 0.45,
+            },
+        }
+        design = Item("design", "AI design for aerospace", "https://a.test/design", "A", "Tech", now.isoformat(), "", 1)
+        model = Item("model", "Qwen minor benchmark update", "https://a.test/model", "A", "Tech", now.isoformat(), "", 2)
+        result = rank([model, design], config, set(), now)
+        self.assertEqual(result[0].id, "design")
+
     def test_render_contains_source(self):
         now = datetime.now(timezone.utc)
         item = Item("1", "Title", "https://example.com", "Source", "Science", now.isoformat(), "Excerpt")

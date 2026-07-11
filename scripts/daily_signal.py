@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from time import mktime
 from typing import Any
+from zoneinfo import ZoneInfo
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import feedparser
@@ -109,6 +110,13 @@ def rank(items: list[Item], config: dict[str, Any], seen: set[str], now: datetim
             keyword_hits += sum(1 for word in topic.get("keywords", []) if word.lower() in haystack)
         age_hours = max(0.0, (now - published.astimezone(timezone.utc)).total_seconds() / 3600)
         item.score += min(keyword_hits, 4) * 0.35 + max(0, 1 - age_hours / max(lookback.total_seconds() / 3600, 1))
+        timezone_name = config.get("site", {}).get("timezone", "Asia/Tokyo")
+        if now.astimezone(ZoneInfo(timezone_name)).weekday() == 6:
+            sunday = config.get("sunday_editorial", {})
+            priority_hits = sum(1 for word in sunday.get("priority_keywords", []) if word.lower() in haystack)
+            deprioritize_hits = sum(1 for word in sunday.get("deprioritize_keywords", []) if word.lower() in haystack)
+            item.score += min(priority_hits, 5) * float(sunday.get("priority_boost", 0.65))
+            item.score -= min(deprioritize_hits, 3) * float(sunday.get("deprioritize_penalty", 0.45))
         current = unique.get(item.url)
         if current is None or item.score > current.score:
             unique[item.url] = item
@@ -129,7 +137,7 @@ def fallback_digest(items: list[Item]) -> dict[str, Any]:
     }
 
 
-def ai_digest(items: list[Item], model: str) -> dict[str, Any]:
+def ai_digest(items: list[Item], model: str, editorial_note: str = "") -> dict[str, Any]:
     api_key = os.getenv("XAI_API_KEY")
     if not api_key:
         print("XAI_API_KEY is not set; generating a source-only brief.", file=sys.stderr)
@@ -141,6 +149,7 @@ def ai_digest(items: list[Item], model: str) -> dict[str, Any]:
 語り口は丁寧で柔らかく、読者へそっと話しかけるようにしてください。「〜ですね」「〜しておきましょう」「注目しておきたいところです」などを自然に使い、過度な馴れ馴れしさや作り込んだ人物設定は避けてください。
 絵文字を積極的に使ってください。タイトル、概要、各見出し、重要性の説明に内容に合う絵文字を自然に入れ、1項目あたり1〜3個を目安にしてください（例: ✨📚🔬💡🌿🚀📈🛡️）。
 調査コストを抑えるためWeb検索は合計5回以内を目安にし、同一内容の重複検索を避けてください。
+{editorial_note}
 次のJSONオブジェクトだけを返してください:
 {{"title":"絵文字を含む、日付なしの短い見出し","description":"絵文字を含む80字以内の紹介","overview":"柔らかい女性秘書風の全体傾向を2-3文。絵文字を2〜4個含める","items":[{{"id":"入力のid","headline":"内容に合う絵文字付き日本語見出し","summary":"丁寧で柔らかい2-3文。絵文字を1〜3個含める","why_it_matters":"重要性を柔らかく伝える1文。絵文字を1個含める","citations":["確認に使ったhttps URL"]}}]}}
 itemsは入力順を保ち、すべて含めてください。citationsには実際に確認したURLだけを最大3件入れてください。
@@ -223,8 +232,12 @@ def main() -> int:
     if not selected:
         print("No new items found.")
         return 0
-    digest = ai_digest(selected, args.model)
-    local_now = datetime.now().astimezone()
+    timezone_name = config.get("site", {}).get("timezone", "Asia/Tokyo")
+    local_now = datetime.now(ZoneInfo(timezone_name))
+    editorial_note = ""
+    if local_now.weekday() == 6:
+        editorial_note = config.get("sunday_editorial", {}).get("prompt", "")
+    digest = ai_digest(selected, args.model, editorial_note)
     markdown = render_markdown(digest, selected, local_now, args.model)
     if args.dry_run:
         print(markdown)
