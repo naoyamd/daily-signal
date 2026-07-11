@@ -77,6 +77,11 @@ summaryLength = 42
   weight = 20
 
 [[menus.main]]
+  name = "Emma先生アーカイブ"
+  pageRef = "posts"
+  weight = 25
+
+[[menus.main]]
   name = "カテゴリー"
   pageRef = "categories"
   weight = 30
@@ -99,5 +104,5 @@ summaryLength = 42
     action = "appearance"
 
 [markup.goldmark.renderer]
-  unsafe = false
+  unsafe = true
 
