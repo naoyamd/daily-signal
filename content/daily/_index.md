@@ -1,5 +1,9 @@
 ---
-title: "Daily Briefs"
-description: "日ごとの重要な論文、技術、科学、社会ニュースをまとめます。"
+title: "すべての記事 📚"
+description: "Daily Signalのすべての記事を、公開日の新しい順にまとめて掲載しています。"
+aliases:
+  - "/posts/"
 ---
+
+論文、テクノロジー、科学・工学、ビジネス、社会の話題を横断してご案内します ☕✨
 

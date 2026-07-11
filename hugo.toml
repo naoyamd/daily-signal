@@ -72,14 +72,9 @@ summaryLength = 42
   weight = 10
 
 [[menus.main]]
-  name = "デイリー"
+  name = "記事"
   pageRef = "daily"
   weight = 20
-
-[[menus.main]]
-  name = "Emma先生アーカイブ"
-  pageRef = "posts"
-  weight = 25
 
 [[menus.main]]
   name = "カテゴリー"

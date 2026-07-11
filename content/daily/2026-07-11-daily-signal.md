@@ -1,12 +1,14 @@
 ---
-title: "arXivでAI安全性・エージェント論文が公開"
-date: 2026-07-11T18:43:54.088020+09:00
+title: arXivでAI安全性・エージェント論文が公開
+date: 2026-07-11 18:43:54.088020+09:00
 draft: false
-description: "arXiv AIでLLMのアライメントやエージェントシステムに関する新論文8本が発表された。"
-categories: ["論文"]
-tags: ["デイリーダイジェスト"]
-generated_by: "daily-signal"
-model: "grok-4.3"
+description: arXiv AIでLLMのアライメントやエージェントシステムに関する新論文8本が発表された。
+categories:
+- テクノロジー
+tags:
+- デイリーダイジェスト
+generated_by: daily-signal
+model: grok-4.3
 source_count: 8
 generation_cost_usd: 0.008177
 ---

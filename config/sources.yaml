@@ -15,11 +15,11 @@ topics:
 sources:
   - name: arXiv AI
     url: https://rss.arxiv.org/rss/cs.AI
-    category: 論文
+    category: テクノロジー
     weight: 1.1
   - name: arXiv Machine Learning
     url: https://rss.arxiv.org/rss/cs.LG
-    category: 論文
+    category: テクノロジー
     weight: 1.1
   - name: Hacker News
     url: https://hnrss.org/frontpage
@@ -31,6 +31,6 @@ sources:
     weight: 1.0
   - name: NASA Breaking News
     url: https://www.nasa.gov/news-release/feed/
-    category: 科学
+    category: 科学・工学
     weight: 1.0
 

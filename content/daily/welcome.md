@@ -1,10 +1,12 @@
 ---
-title: "Daily Signalへようこそ"
-date: 2026-07-11T12:00:00+09:00
+title: Daily Signalへようこそ
+date: 2026-07-11 12:00:00+09:00
 draft: false
-description: "情報源への導線を保ちながら、毎日の重要な動きを短く整理するサイトです。"
-categories: ["About"]
-tags: ["Daily Signal"]
+description: 情報源への導線を保ちながら、毎日の重要な動きを短く整理するサイトです。
+categories:
+- テクノロジー
+tags:
+- Daily Signal
 ---
 
 Daily Signalは、論文、技術、科学、社会のニュースから重要な動きを選び、短い日本語のダイジェストとして届ける個人向けサイトです。
