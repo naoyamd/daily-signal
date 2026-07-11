@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: daily-brief
@@ -39,4 +40,8 @@ jobs:
           git add content/daily data/seen.json
           git commit -m "content: publish daily brief $(date +%F)"
           git push
+      - name: Deploy updated site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
 
