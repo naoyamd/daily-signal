@@ -1,5 +1,0 @@
-{{ define "main" }}
-<section class="page-head"><p class="eyebrow">ARCHIVE</p><h1>{{ .Title }}</h1>{{ with .Content }}<div>{{ . }}</div>{{ end }}</section>
-<section class="feed"><div class="cards">{{ range .Paginator.Pages }}{{ partial "card.html" . }}{{ else }}<p class="empty">記事はまだありません。</p>{{ end }}</div>{{ template "_internal/pagination.html" . }}</section>
-{{ end }}
-

@@ -2,6 +2,8 @@
 
 論文、技術、科学、社会のフィードを毎日収集し、短い日本語ダイジェストとして公開するHugoサイトです。
 
+表示テーマには[Blowfish](https://github.com/nunocoracao/blowfish)を使用し、柔らかい女性秘書風の案内と絵文字を取り入れています。
+
 ## Architecture
 
 1. `config/sources.yaml` に登録されたRSS/Atomフィードを収集

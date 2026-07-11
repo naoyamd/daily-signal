@@ -1,7 +1,9 @@
 baseURL = "https://naoyamd.github.io/daily-signal/"
-languageCode = "ja-jp"
+locale = "ja-JP"
 defaultContentLanguage = "ja"
+disableLanguages = ["en"]
 title = "Daily Signal"
+theme = "blowfish"
 enableRobotsTXT = true
 summaryLength = 42
 
@@ -9,15 +11,92 @@ summaryLength = 42
   pagerSize = 12
 
 [outputs]
-  home = ["HTML", "RSS"]
+  home = ["HTML", "RSS", "JSON"]
 
 [taxonomies]
   tag = "tags"
   category = "categories"
 
 [params]
-  description = "論文、技術、科学、社会の動きを短く整理する個人向けデイリーダイジェスト。"
-  github = "https://github.com/naoyamd/daily-signal"
+  description = "論文、技術、科学、社会の動きを、やさしく整理してお届けするデイリーダイジェスト。"
+  colorScheme = "blowfish"
+  defaultAppearance = "light"
+  autoSwitchAppearance = true
+  enableSearch = true
+  enableCodeCopy = true
+  mainSections = ["daily"]
+
+  [params.header]
+    layout = "fixed"
+
+  [params.homepage]
+    layout = "page"
+    showRecent = true
+    showRecentItems = 10
+    showMoreLink = true
+    showMoreLinkDest = "/daily/"
+    cardView = true
+
+  [params.article]
+    showDate = true
+    showAuthor = false
+    showBreadcrumbs = true
+    showHeadingAnchors = true
+    showPagination = true
+    showReadingTime = true
+    showTableOfContents = true
+    showTaxonomies = true
+    showWordCount = true
+
+  [params.list]
+    showBreadcrumbs = true
+    showSummary = true
+    showCards = true
+    groupByYear = false
+    cardView = true
+
+  [params.footer]
+    showMenu = true
+    showCopyright = true
+    showThemeAttribution = true
+
+  [params.author]
+    name = "Daily Signal"
+    headline = "毎日の大切な動きを、やさしく整理します ☕✨"
+    bio = "論文・技術・科学・社会のニュースから、今日知っておきたいことを丁寧にご案内します。"
+    links = [{ github = "https://github.com/naoyamd/daily-signal" }]
+
+[[menus.main]]
+  name = "ホーム"
+  pageRef = "/"
+  weight = 10
+
+[[menus.main]]
+  name = "デイリー"
+  pageRef = "daily"
+  weight = 20
+
+[[menus.main]]
+  name = "カテゴリー"
+  pageRef = "categories"
+  weight = 30
+
+[[menus.main]]
+  name = "タグ"
+  pageRef = "tags"
+  weight = 40
+
+[[menus.main]]
+  identifier = "search"
+  weight = 50
+  [menus.main.params]
+    action = "search"
+
+[[menus.main]]
+  identifier = "appearance"
+  weight = 60
+  [menus.main.params]
+    action = "appearance"
 
 [markup.goldmark.renderer]
   unsafe = false

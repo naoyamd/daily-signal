@@ -136,11 +136,13 @@ def ai_digest(items: list[Item], model: str) -> dict[str, Any]:
         return fallback_digest(items)
     from openai import OpenAI
     payload = [asdict(item) for item in items]
-    prompt = f"""あなたは日本語のニュース編集者です。入力されたフィード候補をWeb検索で調査し、リンク先の内容を確認して日次ダイジェストを作ってください。
+    prompt = f"""あなたは、仕事ができて気配り上手な女性秘書のような日本語ニュース案内役です。入力されたフィード候補をWeb検索で調査し、リンク先の内容を確認して日次ダイジェストを作ってください。
 一次情報と公式発表を優先してください。本文を確認できない事実は断定せず、誇張やキャラクター口調を避け、簡潔で中立的に書いてください。
+語り口は丁寧で柔らかく、読者へそっと話しかけるようにしてください。「〜ですね」「〜しておきましょう」「注目しておきたいところです」などを自然に使い、過度な馴れ馴れしさや作り込んだ人物設定は避けてください。
+絵文字を積極的に使ってください。タイトル、概要、各見出し、重要性の説明に内容に合う絵文字を自然に入れ、1項目あたり1〜3個を目安にしてください（例: ✨📚🔬💡🌿🚀📈🛡️）。
 調査コストを抑えるためWeb検索は合計5回以内を目安にし、同一内容の重複検索を避けてください。
 次のJSONオブジェクトだけを返してください:
-{{"title":"日付を含まない短い見出し","description":"80字以内","overview":"全体傾向を2-3文","items":[{{"id":"入力のid","headline":"日本語見出し","summary":"2-3文","why_it_matters":"重要性を1文","citations":["確認に使ったhttps URL"]}}]}}
+{{"title":"絵文字を含む、日付なしの短い見出し","description":"絵文字を含む80字以内の紹介","overview":"柔らかい女性秘書風の全体傾向を2-3文。絵文字を2〜4個含める","items":[{{"id":"入力のid","headline":"内容に合う絵文字付き日本語見出し","summary":"丁寧で柔らかい2-3文。絵文字を1〜3個含める","why_it_matters":"重要性を柔らかく伝える1文。絵文字を1個含める","citations":["確認に使ったhttps URL"]}}]}}
 itemsは入力順を保ち、すべて含めてください。citationsには実際に確認したURLだけを最大3件入れてください。
 
 入力:
@@ -183,19 +185,19 @@ def render_markdown(digest: dict[str, Any], selected: list[Item], local_now: dat
         f"model: {yaml_string(model if os.getenv('XAI_API_KEY') else 'source-only')}",
         f"source_count: {len(selected)}",
         f"generation_cost_usd: {digest.get('cost_usd', 0)}",
-        "---", "", "## 今日の概況", "", digest["overview"], "",
+        "---", "", "## 今日のご案内 ☕✨", "", digest["overview"], "",
     ]
     for index, summary in enumerate(digest["items"], 1):
         source = by_id[summary["id"]]
         lines.extend([
             f"## {index}. {summary['headline']}", "",
-            summary["summary"], "", f"**注目する理由:** {summary['why_it_matters']}", "",
-            f"- 情報源: [{source.source}]({source.url})",
-            f"- 公開日時: {source.published_at}", f"- 分類: {source.category}", "",
+            summary["summary"], "", f"**💡 注目しておきたい理由:** {summary['why_it_matters']}", "",
+            f"- 🔗 情報源: [{source.source}]({source.url})",
+            f"- 🕰️ 公開日時: {source.published_at}", f"- 🗂️ 分類: {source.category}", "",
         ])
         citations = [url for url in summary.get("citations", []) if str(url).startswith("https://")]
         if citations:
-            lines.extend(["**追加確認:**", ""] + [f"- <{url}>" for url in citations[:3]] + [""])
+            lines.extend(["**📚 追加で確認した資料:**", ""] + [f"- <{url}>" for url in citations[:3]] + [""])
     lines.extend(["---", "", "> 本記事は登録フィードをもとに自動生成されています。重要な判断にはリンク先の一次情報をご確認ください。", ""])
     return "\n".join(lines)
 

@@ -1,7 +1,0 @@
-<article class="card">
-  <p class="card-meta">{{ .Date.Format "2006.01.02" }}{{ with index .Params.categories 0 }} · {{ . }}{{ end }}</p>
-  <h3><a href="{{ .RelPermalink }}">{{ .Title }}</a></h3>
-  <p>{{ with .Description }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 130 }}{{ end }}</p>
-  <a class="read" href="{{ .RelPermalink }}">読む →</a>
-</article>
-

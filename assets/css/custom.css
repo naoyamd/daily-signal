@@ -1,0 +1,17 @@
+:root { --daily-soft-pink:#f7e7ec; --daily-warm-ink:#443d46; }
+html:not(.dark) body {
+  background:linear-gradient(145deg,#fffaf8 0%,#f8f5fb 48%,#f4faf8 100%);
+  color:var(--daily-warm-ink);
+}
+.article-content h2 {
+  border-bottom:1px solid rgba(190,142,160,.28);
+  padding-bottom:.35rem;
+}
+.article-content blockquote {
+  border-left-color:#cf8fa8;
+  background:rgba(247,231,236,.42);
+  border-radius:0 .75rem .75rem 0;
+  padding:.8rem 1rem;
+}
+.thumbnail_card { border-radius:1rem; }
+.dark .article-content blockquote { background:rgba(126,91,111,.18); }
