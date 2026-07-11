@@ -25,10 +25,12 @@ class DailySignalTests(unittest.TestCase):
     def test_render_contains_source(self):
         now = datetime.now(timezone.utc)
         item = Item("1", "Title", "https://example.com", "Source", "Science", now.isoformat(), "Excerpt")
-        digest = {"title": "Brief", "description": "Desc", "overview": "Overview", "items": [{"id": "1", "headline": "見出し", "summary": "要約", "why_it_matters": "理由"}]}
+        digest = {"title": "Brief", "description": "Desc", "overview": "Overview", "cost_usd": 0.01, "items": [{"id": "1", "headline": "見出し", "summary": "要約", "why_it_matters": "理由", "citations": ["https://example.org/check"]}]}
         output = render_markdown(digest, [item], now, "test-model")
         self.assertIn("https://example.com", output)
+        self.assertIn("https://example.org/check", output)
         self.assertIn("source_count: 1", output)
+        self.assertIn("generation_cost_usd: 0.01", output)
 
 
 if __name__ == "__main__":

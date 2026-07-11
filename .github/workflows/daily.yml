@@ -24,8 +24,8 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Generate brief
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.4-mini' }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          XAI_MODEL: ${{ vars.XAI_MODEL || 'grok-4.3' }}
           TZ: Asia/Tokyo
         run: python scripts/daily_signal.py
       - name: Commit new content

@@ -6,7 +6,7 @@
 
 1. `config/sources.yaml` に登録されたRSS/Atomフィードを収集
 2. URLの正規化、既読除外、鮮度とキーワードによるランキング
-3. 上位項目をOpenAI Responses APIで中立的な日本語に要約
+3. 上位項目をxAI Responses APIのWeb Searchで調査し、中立的な日本語に要約
 4. `content/daily/` にHugo Markdownを生成
 5. GitHub ActionsからGitHub Pagesへデプロイ
 
@@ -28,8 +28,8 @@ hugo server -D
 Repository settingsで次を設定します。
 
 1. **Settings → Pages → Source** を `GitHub Actions` にする
-2. **Settings → Secrets and variables → Actions → Secrets** に `OPENAI_API_KEY` を追加
-3. 必要ならActions Variable `OPENAI_MODEL` でモデルを変更
+2. **Settings → Secrets and variables → Actions → Secrets** に `XAI_API_KEY` を追加
+3. 必要ならActions Variable `XAI_MODEL` でモデルを変更（既定値: `grok-4.3`）
 
 日次処理は日本時間7時17分頃に実行されます。GitHub Actionsの混雑により開始が遅れる場合があります。Actions画面から手動実行もできます。
 

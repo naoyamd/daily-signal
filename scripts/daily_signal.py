@@ -130,20 +130,24 @@ def fallback_digest(items: list[Item]) -> dict[str, Any]:
 
 
 def ai_digest(items: list[Item], model: str) -> dict[str, Any]:
-    if not os.getenv("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY is not set; generating a source-only brief.", file=sys.stderr)
+    api_key = os.getenv("XAI_API_KEY")
+    if not api_key:
+        print("XAI_API_KEY is not set; generating a source-only brief.", file=sys.stderr)
         return fallback_digest(items)
     from openai import OpenAI
     payload = [asdict(item) for item in items]
-    prompt = f"""あなたは日本語のニュース編集者です。入力されたフィード項目だけを根拠に日次ダイジェストを作ってください。
-推測で事実を補わず、誇張やキャラクター口調を避け、簡潔で中立的に書いてください。
+    prompt = f"""あなたは日本語のニュース編集者です。入力されたフィード候補をWeb検索で調査し、リンク先の内容を確認して日次ダイジェストを作ってください。
+一次情報と公式発表を優先してください。本文を確認できない事実は断定せず、誇張やキャラクター口調を避け、簡潔で中立的に書いてください。
+調査コストを抑えるためWeb検索は合計5回以内を目安にし、同一内容の重複検索を避けてください。
 次のJSONオブジェクトだけを返してください:
-{{"title":"日付を含まない短い見出し","description":"80字以内","overview":"全体傾向を2-3文","items":[{{"id":"入力のid","headline":"日本語見出し","summary":"2-3文","why_it_matters":"重要性を1文"}}]}}
-itemsは入力順を保ち、すべて含めてください。URLは出力しないでください。
+{{"title":"日付を含まない短い見出し","description":"80字以内","overview":"全体傾向を2-3文","items":[{{"id":"入力のid","headline":"日本語見出し","summary":"2-3文","why_it_matters":"重要性を1文","citations":["確認に使ったhttps URL"]}}]}}
+itemsは入力順を保ち、すべて含めてください。citationsには実際に確認したURLだけを最大3件入れてください。
 
 入力:
 {json.dumps(payload, ensure_ascii=False)}"""
-    response = OpenAI().responses.create(model=model, input=prompt)
+    response = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1").responses.create(
+        model=model, input=prompt, tools=[{"type": "web_search"}],
+    )
     raw = response.output_text.strip()
     raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.I)
     try:
@@ -154,6 +158,9 @@ itemsは入力順を保ち、すべて含めてください。URLは出力しな
     returned = {value.get("id") for value in result.get("items", [])}
     if returned != expected:
         raise RuntimeError("model output did not preserve the selected item IDs")
+    usage = getattr(response, "usage", None)
+    ticks = getattr(usage, "cost_in_usd_ticks", 0) if usage else 0
+    result["cost_usd"] = round(ticks / 10_000_000_000, 6) if ticks else 0
     return result
 
 
@@ -173,8 +180,9 @@ def render_markdown(digest: dict[str, Any], selected: list[Item], local_now: dat
         f"categories: {json.dumps(categories, ensure_ascii=False)}",
         'tags: ["デイリーダイジェスト"]',
         'generated_by: "daily-signal"',
-        f"model: {yaml_string(model if os.getenv('OPENAI_API_KEY') else 'source-only')}",
+        f"model: {yaml_string(model if os.getenv('XAI_API_KEY') else 'source-only')}",
         f"source_count: {len(selected)}",
+        f"generation_cost_usd: {digest.get('cost_usd', 0)}",
         "---", "", "## 今日の概況", "", digest["overview"], "",
     ]
     for index, summary in enumerate(digest["items"], 1):
@@ -185,6 +193,9 @@ def render_markdown(digest: dict[str, Any], selected: list[Item], local_now: dat
             f"- 情報源: [{source.source}]({source.url})",
             f"- 公開日時: {source.published_at}", f"- 分類: {source.category}", "",
         ])
+        citations = [url for url in summary.get("citations", []) if str(url).startswith("https://")]
+        if citations:
+            lines.extend(["**追加確認:**", ""] + [f"- <{url}>" for url in citations[:3]] + [""])
     lines.extend(["---", "", "> 本記事は登録フィードをもとに自動生成されています。重要な判断にはリンク先の一次情報をご確認ください。", ""])
     return "\n".join(lines)
 
@@ -200,7 +211,7 @@ def main() -> int:
     parser.add_argument("--config", type=Path, default=Path("config/sources.yaml"))
     parser.add_argument("--content-dir", type=Path, default=Path("content/daily"))
     parser.add_argument("--state", type=Path, default=Path("data/seen.json"))
-    parser.add_argument("--model", default=os.getenv("OPENAI_MODEL", "gpt-5.4-mini"))
+    parser.add_argument("--model", default=os.getenv("XAI_MODEL", "grok-4.3"))
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
