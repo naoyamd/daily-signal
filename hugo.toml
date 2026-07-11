@@ -18,7 +18,7 @@ summaryLength = 42
   category = "categories"
 
 [params]
-  description = "論文、技術、科学、社会の動きを、やさしく整理してお届けするデイリーダイジェスト。"
+  description = "論文、技術、科学、社会の動きを短く整理する個人向けデイリーダイジェスト。"
   colorScheme = "blowfish"
   defaultAppearance = "light"
   autoSwitchAppearance = true
@@ -62,7 +62,7 @@ summaryLength = 42
 
   [params.author]
     name = "Daily Signal"
-    headline = "毎日の大切な動きを、やさしく整理します ☕✨"
+    headline = "情報の量ではなく、意味のある信号を。"
     bio = "論文・技術・科学・社会のニュースから、今日知っておきたいことを丁寧にご案内します。"
     links = [{ github = "https://github.com/naoyamd/daily-signal" }]
 
