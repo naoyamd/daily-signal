@@ -1,4 +1,4 @@
-baseURL = "https://naoyamd.github.io/daily-signal/"
+baseURL = "http://blog.nightly.dedyn.io/"
 locale = "ja-JP"
 defaultContentLanguage = "ja"
 disableLanguages = ["en"]
