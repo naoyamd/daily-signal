@@ -8,13 +8,13 @@
 
 1. VPSのsystemd timerが日本時間の各更新時刻に処理を開始
 2. `config/sources.yaml` のRSS/Atomフィードを収集し、既読・鮮度・関心分野で候補を決定
-3. OpenClaw上のEmma先生（`openai/gpt-5.6-luna`, thinking `ultra`）が元URLを確認して構造化原稿を執筆
+3. OpenClaw上のEmma先生（`openai/gpt-5.6-luna`, thinking `xhigh`＝Luna Ultra相当）が元URLを確認して構造化原稿を執筆
 4. 決定論的なpublisherが候補ID、HTTPS引用、出力先を検証してHugo Markdownへ変換
 5. host側のランナーだけがリポジトリ専用Deploy Keyを使い、検証済みの2ファイルをcommit/push
 6. GitHub ActionsはHugoのビルドとGitHub Pagesへの公開のみを担当
 
 EmmaにはGitHub資格情報を渡しません。Emmaが変更できるのは共有workspace内の原稿で、pushはhost側の許可リスト検証を通過した後に実行されます。
-この`ultra`指定はブログ用ランナーだけに適用され、Discordでの通常会話に使うEmmaのthinking設定は変更しません。
+この`xhigh`指定はブログ用ランナーだけに適用され、Discordでの通常会話に使うEmmaのthinking設定は変更しません。
 
 ## Local development
 
