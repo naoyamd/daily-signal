@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Emma closing market report on weekdays
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 16:45:00 Asia/Tokyo
+Persistent=true
+RandomizedDelaySec=2m
+Unit=daily-signal-emma-market.service
+
+[Install]
+WantedBy=timers.target

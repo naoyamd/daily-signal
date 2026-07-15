@@ -1,8 +1,8 @@
 [Unit]
-Description=Run the Emma Daily Signal update every morning
+Description=Run the Emma AI digest every morning
 
 [Timer]
-OnCalendar=*-*-* 07:17:00 Asia/Tokyo
+OnCalendar=*-*-* 07:00:00 Asia/Tokyo
 Persistent=true
 RandomizedDelaySec=2m
 Unit=daily-signal-emma.service

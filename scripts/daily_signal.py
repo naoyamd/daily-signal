@@ -95,7 +95,15 @@ def collect(config: dict[str, Any], now: datetime) -> list[Item]:
 
 
 def rank(items: list[Item], config: dict[str, Any], seen: set[str], now: datetime) -> list[Item]:
-    lookback = timedelta(hours=int(config["site"].get("lookback_hours", 48)))
+    timezone_name = config.get("site", {}).get("timezone", "Asia/Tokyo")
+    is_sunday = now.astimezone(ZoneInfo(timezone_name)).weekday() == 6
+    sunday = config.get("sunday_editorial", {})
+    lookback_hours = (
+        sunday.get("lookback_hours", config["site"].get("lookback_hours", 48))
+        if is_sunday
+        else config["site"].get("lookback_hours", 48)
+    )
+    lookback = timedelta(hours=int(lookback_hours))
     unique: dict[str, Item] = {}
     topics = config.get("topics", [])
     for item in items:
@@ -110,9 +118,7 @@ def rank(items: list[Item], config: dict[str, Any], seen: set[str], now: datetim
             keyword_hits += sum(1 for word in topic.get("keywords", []) if word.lower() in haystack)
         age_hours = max(0.0, (now - published.astimezone(timezone.utc)).total_seconds() / 3600)
         item.score += min(keyword_hits, 4) * 0.35 + max(0, 1 - age_hours / max(lookback.total_seconds() / 3600, 1))
-        timezone_name = config.get("site", {}).get("timezone", "Asia/Tokyo")
-        if now.astimezone(ZoneInfo(timezone_name)).weekday() == 6:
-            sunday = config.get("sunday_editorial", {})
+        if is_sunday:
             priority_hits = sum(1 for word in sunday.get("priority_keywords", []) if word.lower() in haystack)
             deprioritize_hits = sum(1 for word in sunday.get("deprioritize_keywords", []) if word.lower() in haystack)
             item.score += min(priority_hits, 5) * float(sunday.get("priority_boost", 0.65))
