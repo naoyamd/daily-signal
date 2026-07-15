@@ -6,6 +6,7 @@ site:
 
 
 sunday_editorial:
+  lookback_hours: 168
   priority_boost: 0.65
   deprioritize_penalty: 0.45
   priority_keywords:
@@ -30,7 +31,9 @@ sunday_editorial:
     - Microsoft
   deprioritize_keywords: [DeepSeek, Qwen, GLM, MiniMax, Moonshot]
   prompt: >-
-    日曜日版は、月曜日に航空宇宙系研究所の管理職へ共有する週報の素材です。
+    日曜日版は1週間を振り返る週次レビューです。月曜日に航空宇宙系研究所の管理職へ
+    共有する週報の素材として、過去7日間の重要テーマ、継続トレンド、次週の確認事項を
+    明確にしてください。
     経営・研究開発上の含意が伝わる話題を優先し、特に設計・CAE・シミュレーション・
     デジタルツイン、航空宇宙や製造業でのAI活用、日本製LLM、大手LLM事業者の重要動向を
     重視してください。中国系モデルは、日本の産業・安全保障・競争環境に明確な影響がある

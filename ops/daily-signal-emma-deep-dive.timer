@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Emma Tech Deep-Dive every morning
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Asia/Tokyo
+Persistent=true
+RandomizedDelaySec=2m
+Unit=daily-signal-emma-deep-dive.service
+
+[Install]
+WantedBy=timers.target

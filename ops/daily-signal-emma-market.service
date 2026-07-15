@@ -1,5 +1,5 @@
 [Unit]
-Description=Daily Signal update by Emma on OpenClaw
+Description=Daily Signal closing market report by Emma on OpenClaw
 After=docker.service network-online.target
 Wants=network-online.target
 Requires=docker.service
@@ -12,7 +12,7 @@ WorkingDirectory=/opt/openclaw/data/workspace/daily-signal
 Environment=PYTHONUNBUFFERED=1
 Environment="GIT_SSH_COMMAND=ssh -i /home/ubuntu/.ssh/daily-signal_deploy -o IdentitiesOnly=yes"
 EnvironmentFile=-/etc/default/daily-signal-emma
-ExecStart=/opt/openclaw/data/workspace/daily-signal/ops/run-emma-update.sh
+ExecStart=/opt/openclaw/data/workspace/daily-signal/ops/run-emma-update.sh market
 TimeoutStartSec=90min
 NoNewPrivileges=true
 PrivateTmp=true

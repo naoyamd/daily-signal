@@ -1,12 +1,12 @@
 # Daily Signal
 
-論文、技術、科学、社会のフィードを毎日収集し、Emma先生が短い日本語ダイジェストとして編集・公開するHugoサイトです。
+論文、技術、科学、社会、市場の情報を収集し、Emma先生が旧Emmaブログの更新構成を継承して公開するHugoサイトです。
 
 表示テーマには[Blowfish](https://github.com/nunocoracao/blowfish)を使用しています。
 
 ## Architecture
 
-1. VPSのsystemd timerが日本時間7時17分頃に日次処理を開始
+1. VPSのsystemd timerが日本時間の各更新時刻に処理を開始
 2. `config/sources.yaml` のRSS/Atomフィードを収集し、既読・鮮度・関心分野で候補を決定
 3. OpenClaw上のEmma先生（`openai/gpt-5.6-luna`, thinking `high`）が元URLを確認して構造化原稿を執筆
 4. 決定論的なpublisherが候補ID、HTTPS引用、出力先を検証してHugo Markdownへ変換
@@ -47,8 +47,12 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 sudo install -m 0644 ops/daily-signal-emma.service /etc/systemd/system/
 sudo install -m 0644 ops/daily-signal-emma.timer /etc/systemd/system/
+sudo install -m 0644 ops/daily-signal-emma-deep-dive.service /etc/systemd/system/
+sudo install -m 0644 ops/daily-signal-emma-deep-dive.timer /etc/systemd/system/
+sudo install -m 0644 ops/daily-signal-emma-market.service /etc/systemd/system/
+sudo install -m 0644 ops/daily-signal-emma-market.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now daily-signal-emma.timer
+sudo systemctl enable --now daily-signal-emma.timer daily-signal-emma-deep-dive.timer daily-signal-emma-market.timer
 ```
 
 Discordへ結果を通知する場合、`/etc/default/daily-signal-emma`へ次を設定します。
@@ -62,7 +66,7 @@ DAILY_SIGNAL_DISCORD_USER_ID=your-discord-user-id
 ```bash
 sudo systemctl start daily-signal-emma.service
 sudo journalctl -u daily-signal-emma.service -n 200 --no-pager
-systemctl list-timers daily-signal-emma.timer
+systemctl list-timers 'daily-signal-emma*.timer'
 ```
 
 ## GitHub setup
@@ -74,6 +78,18 @@ Repository settingsで次を設定します。
 3. Actionsの旧`XAI_API_KEY` secretと`XAI_MODEL` variableは不要になったため削除可能
 
 GitHub Actionsの日次生成scheduleは廃止しています。Pages workflowはEmmaのpushを検知して公開します。
+
+## Publishing schedule
+
+旧Emmaブログと同じ3系統をVPSのsystemd timerで運用します。日曜07:00版は過去7日分を対象とした週間総括です。
+
+| 時刻（JST） | 頻度 | 内容 |
+|:---|:---|:---|
+| 03:30 | 毎日 | Tech Deep-Dive。一次資料を中心に原理、定量比較、限界、実務応用を長文解説 |
+| 07:00 | 毎日 | AI・科学・産業デイリーダイジェスト。日曜は週間レビューと次週の確認事項 |
+| 16:45 | 月〜金 | 大引け後の株式レポート。主要指数、政策・経済、海外市場、根拠付き注目5銘柄 |
+
+市場休場日や大引けデータを確認できない日は、株式レポートを推測で作らず休刊します。
 
 ## Configure sources
 
