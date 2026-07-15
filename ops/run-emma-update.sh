@@ -37,6 +37,12 @@ cd "$REPO_DIR"
 }
 
 git pull --ff-only origin main
+today="$(TZ=Asia/Tokyo date +%F)"
+if [[ -f "content/daily/${today}-daily-signal.md" ]]; then
+  echo "Article for ${today} already exists; nothing to do."
+  notify "☕ Daily Signal: ${today}の記事は公開済みのため、重複更新を見送りました。"
+  exit 0
+fi
 
 set +e
 "$PYTHON" -m scripts.emma_pipeline prepare --output "$WORK_DIR/candidates.json"
@@ -51,7 +57,6 @@ elif [[ $prepare_status -ne 0 ]]; then
 fi
 
 rm -f "$WORK_DIR/draft.json" "$WORK_DIR/publish-result.json" "$WORK_DIR/agent-result.json"
-today="$(TZ=Asia/Tokyo date +%F)"
 
 docker compose -f "$OPENCLAW_DIR/docker-compose.yml" run -T --rm openclaw-cli agent \
   --session-id "daily-signal-${today}" \
