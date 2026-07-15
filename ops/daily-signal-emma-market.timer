@@ -1,5 +1,5 @@
 [Unit]
-Description=Run the Emma closing market report on weekdays
+Description=Run the closing market report on weekdays
 
 [Timer]
 OnCalendar=Mon..Fri *-*-* 16:45:00 Asia/Tokyo

@@ -53,7 +53,7 @@ notify() {
 
 fail() {
   local line="$1"
-  notify "⚠️ Daily Signal ${EDITION_LABEL}のEmma更新が失敗しました（line ${line}）。VPSのjournalを確認してください。"
+  notify "⚠️ Daily Signal ${EDITION_LABEL}の更新が失敗しました（line ${line}）。VPSのjournalを確認してください。"
 }
 trap 'fail "$LINENO"' ERR
 
@@ -104,7 +104,7 @@ docker compose -f "$OPENCLAW_DIR/docker-compose.yml" run -T --rm openclaw-cli ag
   >"$WORK_DIR/agent-result.json"
 
 if [[ ! -f "$WORK_DIR/draft.json" ]]; then
-  echo "Emma skipped ${EDITION_LABEL}; no draft was produced."
+  echo "The editorial agent skipped ${EDITION_LABEL}; no draft was produced."
   notify "☕ Daily Signal ${EDITION_LABEL}: 公開条件を満たさなかったため、更新を見送りました。"
   exit 0
 fi
@@ -128,7 +128,7 @@ title="$($PYTHON -c 'import json,sys; print(json.load(open(sys.argv[1], encoding
 
 unexpected="$(git status --porcelain | cut -c4- | grep -Fvx -e "$article" -e "$STATE_PATH" || true)"
 if [[ -n "$unexpected" ]]; then
-  echo "Emma changed files outside the publication allowlist:" >&2
+  echo "The editorial agent changed files outside the publication allowlist:" >&2
   echo "$unexpected" >&2
   exit 1
 fi
@@ -136,9 +136,9 @@ fi
 "$PYTHON" -m unittest discover -s tests
 git add -- "$article" "$STATE_PATH"
 git diff --cached --check
-git config user.name "Emma Sensei"
-git config user.email "emma-sensei[bot]@users.noreply.github.com"
-git commit -m "content: Emma publishes ${EDITION_LABEL} ${today}"
+git config user.name "Daily Signal Editorial Bot"
+git config user.email "daily-signal[bot]@users.noreply.github.com"
+git commit -m "content: publish ${EDITION_LABEL} ${today}"
 git push origin HEAD:main
 
 notify "📝 Daily Signal ${EDITION_LABEL}を更新しました: ${title}"

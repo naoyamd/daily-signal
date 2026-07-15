@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare source candidates and publish an Emma-authored Daily Signal brief."""
+"""Prepare source candidates and publish an editorial Daily Signal brief."""
 
 from __future__ import annotations
 
@@ -19,7 +19,9 @@ from scripts.daily_signal import Item, collect, load_seen, rank, render_markdown
 
 SCHEMA_VERSION = 1
 MODEL = "openai/gpt-5.6-luna"
-GENERATOR = "Emma / OpenClaw"
+GENERATOR = "OpenClaw Editorial System"
+IDENTITY_PATTERN = re.compile(r"Emma|エマ", re.IGNORECASE)
+SELF_REFERENCE_PATTERN = re.compile(r"(?:私|わたし|筆者|執筆者)(?:は|が|の|として)")
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -66,6 +68,22 @@ def _text(value: Any, field: str, *, one_line: bool = False, max_chars: int = 20
     return cleaned
 
 
+def validate_editorial_voice(value: Any, field: str = "draft") -> None:
+    """Reject public copy that exposes the internal writer or a first-person persona."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in {"id", "source_ids", "citations", "references", "source_url"}:
+                continue
+            validate_editorial_voice(item, f"{field}.{key}")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            validate_editorial_voice(item, f"{field}[{index}]")
+    elif isinstance(value, str) and (
+        IDENTITY_PATTERN.search(value) or SELF_REFERENCE_PATTERN.search(value)
+    ):
+        raise ValueError(f"{field} must use an anonymous, non-first-person editorial voice")
+
+
 def validate_draft(bundle: dict[str, Any], draft: dict[str, Any]) -> dict[str, Any]:
     if bundle.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("unsupported candidate bundle schema")
@@ -104,13 +122,15 @@ def validate_draft(bundle: dict[str, Any], draft: dict[str, Any]) -> dict[str, A
             ),
             "citations": normalized_citations,
         })
-    return {
+    normalized = {
         "title": _text(draft.get("title"), "draft.title", one_line=True, max_chars=160),
         "description": _text(draft.get("description"), "draft.description", one_line=True, max_chars=240),
         "overview": _text(draft.get("overview"), "draft.overview", max_chars=1600),
         "items": normalized_items,
         "cost_usd": 0,
     }
+    validate_editorial_voice(normalized)
+    return normalized
 
 
 def publish_draft(
