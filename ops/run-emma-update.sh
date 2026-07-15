@@ -7,6 +7,7 @@ OPENCLAW_DIR="${OPENCLAW_DIR:-/opt/openclaw/source}"
 PYTHON="${DAILY_SIGNAL_PYTHON:-${REPO_DIR}/.venv/bin/python}"
 CONTAINER_REPO="/home/node/.openclaw/workspace/daily-signal"
 MODEL="${DAILY_SIGNAL_MODEL:-openai/gpt-5.6-luna}"
+THINKING="${DAILY_SIGNAL_THINKING:-ultra}"
 DISCORD_USER_ID="${DAILY_SIGNAL_DISCORD_USER_ID:-}"
 LOCK_FILE="${DAILY_SIGNAL_LOCK_FILE:-/tmp/daily-signal-emma.lock}"
 
@@ -96,7 +97,7 @@ rm -f "$WORK_DIR/draft.json" "$WORK_DIR/publish-result.json" "$WORK_DIR/agent-re
 docker compose -f "$OPENCLAW_DIR/docker-compose.yml" run -T --rm openclaw-cli agent \
   --session-id "daily-signal-${EDITION}-${today}" \
   --model "$MODEL" \
-  --thinking high \
+  --thinking "$THINKING" \
   --message-file "$CONTAINER_PROMPT" \
   --json \
   --timeout 1800 \
