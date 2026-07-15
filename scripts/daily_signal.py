@@ -179,7 +179,13 @@ def yaml_string(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
-def render_markdown(digest: dict[str, Any], selected: list[Item], local_now: datetime, model: str) -> str:
+def render_markdown(
+    digest: dict[str, Any],
+    selected: list[Item],
+    local_now: datetime,
+    model: str,
+    generator: str = "daily-signal",
+) -> str:
     by_id = {item.id: item for item in selected}
     categories = sorted({item.category for item in selected})
     lines = [
@@ -190,8 +196,8 @@ def render_markdown(digest: dict[str, Any], selected: list[Item], local_now: dat
         f"description: {yaml_string(digest['description'])}",
         f"categories: {json.dumps(categories, ensure_ascii=False)}",
         'tags: ["デイリーダイジェスト"]',
-        'generated_by: "daily-signal"',
-        f"model: {yaml_string(model if os.getenv('XAI_API_KEY') else 'source-only')}",
+        f"generated_by: {yaml_string(generator)}",
+        f"model: {yaml_string(model)}",
         f"source_count: {len(selected)}",
         f"generation_cost_usd: {digest.get('cost_usd', 0)}",
         "---", "", "## 今日のご案内 ☕✨", "", digest["overview"], "",
@@ -207,7 +213,14 @@ def render_markdown(digest: dict[str, Any], selected: list[Item], local_now: dat
         citations = [url for url in summary.get("citations", []) if str(url).startswith("https://")]
         if citations:
             lines.extend(["**📚 追加で確認した資料:**", ""] + [f"- <{url}>" for url in citations[:3]] + [""])
-    lines.extend(["---", "", "> 本記事は登録フィードをもとに自動生成されています。重要な判断にはリンク先の一次情報をご確認ください。", ""])
+    footer = (
+        "> 本記事は登録フィードをもとにEmma先生（OpenClaw）が選定・執筆しています。"
+        "重要な判断にはリンク先の一次情報をご確認ください。"
+        if generator == "Emma / OpenClaw"
+        else "> 本記事は登録フィードをもとに自動生成されています。"
+        "重要な判断にはリンク先の一次情報をご確認ください。"
+    )
+    lines.extend(["---", "", footer, ""])
     return "\n".join(lines)
 
 
@@ -222,7 +235,7 @@ def main() -> int:
     parser.add_argument("--config", type=Path, default=Path("config/sources.yaml"))
     parser.add_argument("--content-dir", type=Path, default=Path("content/daily"))
     parser.add_argument("--state", type=Path, default=Path("data/seen.json"))
-    parser.add_argument("--model", default=os.getenv("XAI_MODEL", "grok-4.3"))
+    parser.add_argument("--model", default="source-only")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
@@ -234,10 +247,7 @@ def main() -> int:
         return 0
     timezone_name = config.get("site", {}).get("timezone", "Asia/Tokyo")
     local_now = datetime.now(ZoneInfo(timezone_name))
-    editorial_note = ""
-    if local_now.weekday() == 6:
-        editorial_note = config.get("sunday_editorial", {}).get("prompt", "")
-    digest = ai_digest(selected, args.model, editorial_note)
+    digest = fallback_digest(selected)
     markdown = render_markdown(digest, selected, local_now, args.model)
     if args.dry_run:
         print(markdown)

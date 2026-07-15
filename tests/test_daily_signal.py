@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from scripts.daily_signal import Item, canonical_url, item_id, rank, render_markdown
+from scripts.emma_pipeline import GENERATOR, MODEL, publish_draft, validate_draft
 
 
 class DailySignalTests(unittest.TestCase):
@@ -48,6 +49,80 @@ class DailySignalTests(unittest.TestCase):
         self.assertIn("https://example.org/check", output)
         self.assertIn("source_count: 1", output)
         self.assertIn("generation_cost_usd: 0.01", output)
+
+    def test_render_marks_emma_as_generator(self):
+        now = datetime.now(timezone.utc)
+        item = Item("1", "Title", "https://example.com", "Source", "Science", now.isoformat(), "Excerpt")
+        digest = {
+            "title": "Brief",
+            "description": "Desc",
+            "overview": "Overview",
+            "cost_usd": 0,
+            "items": [{
+                "id": "1",
+                "headline": "見出し",
+                "summary": "要約",
+                "why_it_matters": "理由",
+                "citations": [],
+            }],
+        }
+        output = render_markdown(digest, [item], now, MODEL, generator=GENERATOR)
+        self.assertIn('generated_by: "Emma / OpenClaw"', output)
+        self.assertIn("Emma先生（OpenClaw）が選定・執筆", output)
+
+    def test_validate_draft_requires_original_item_order(self):
+        bundle = {
+            "schema_version": 1,
+            "items": [{"id": "a"}, {"id": "b"}],
+        }
+        draft = {
+            "title": "Title",
+            "description": "Description",
+            "overview": "Overview",
+            "items": [
+                {"id": "b", "headline": "B", "summary": "B", "why_it_matters": "B", "citations": []},
+                {"id": "a", "headline": "A", "summary": "A", "why_it_matters": "A", "citations": []},
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "original order"):
+            validate_draft(bundle, draft)
+
+    def test_publish_draft_writes_only_article_and_seen_state(self):
+        now = datetime(2026, 7, 16, 7, 17, tzinfo=timezone.utc)
+        item = Item("id-1", "Source title", "https://example.com/source", "Source", "Science", now.isoformat(), "Excerpt")
+        bundle = {
+            "schema_version": 1,
+            "generated_at": now.isoformat(),
+            "timezone": "UTC",
+            "editorial_note": "",
+            "items": [item.__dict__],
+        }
+        draft = {
+            "title": "Emma brief",
+            "description": "Description",
+            "overview": "Overview",
+            "items": [{
+                "id": "id-1",
+                "headline": "Headline",
+                "summary": "Summary",
+                "why_it_matters": "Reason",
+                "citations": ["https://example.com/check"],
+            }],
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            bundle_path = root / "bundle.json"
+            draft_path = root / "draft.json"
+            state_path = root / "data" / "seen.json"
+            content_dir = root / "content"
+            result_path = root / "result.json"
+            bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+            draft_path.write_text(json.dumps(draft), encoding="utf-8")
+            output = publish_draft(bundle_path, draft_path, content_dir, state_path, result_path)
+            self.assertEqual(output.name, "2026-07-16-daily-signal.md")
+            self.assertIn('generated_by: "Emma / OpenClaw"', output.read_text(encoding="utf-8"))
+            self.assertEqual(json.loads(state_path.read_text(encoding="utf-8"))["ids"], ["id-1"])
+            self.assertEqual(json.loads(result_path.read_text(encoding="utf-8"))["model"], MODEL)
 
 
 if __name__ == "__main__":
