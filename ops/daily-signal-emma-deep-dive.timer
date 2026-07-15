@@ -1,5 +1,5 @@
 [Unit]
-Description=Run the Emma Tech Deep-Dive every morning
+Description=Run the Tech Deep-Dive every morning
 
 [Timer]
 OnCalendar=*-*-* 03:30:00 Asia/Tokyo

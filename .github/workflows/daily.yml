@@ -1,4 +1,4 @@
-name: Verify Emma publishing pipeline
+name: Verify publishing pipeline
 
 on:
   pull_request:

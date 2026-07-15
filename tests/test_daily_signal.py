@@ -50,7 +50,7 @@ class DailySignalTests(unittest.TestCase):
         self.assertIn("source_count: 1", output)
         self.assertIn("generation_cost_usd: 0.01", output)
 
-    def test_render_marks_emma_as_generator(self):
+    def test_render_uses_anonymous_editorial_attribution(self):
         now = datetime.now(timezone.utc)
         item = Item("1", "Title", "https://example.com", "Source", "Science", now.isoformat(), "Excerpt")
         digest = {
@@ -67,8 +67,9 @@ class DailySignalTests(unittest.TestCase):
             }],
         }
         output = render_markdown(digest, [item], now, MODEL, generator=GENERATOR)
-        self.assertIn('generated_by: "Emma / OpenClaw"', output)
-        self.assertIn("Emma先生（OpenClaw）が選定・執筆", output)
+        self.assertIn('generated_by: "OpenClaw Editorial System"', output)
+        self.assertNotIn("Emma", output)
+        self.assertNotIn("エマ", output)
 
     def test_validate_draft_requires_original_item_order(self):
         bundle = {
@@ -87,6 +88,23 @@ class DailySignalTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "original order"):
             validate_draft(bundle, draft)
 
+    def test_validate_draft_rejects_public_writer_identity(self):
+        bundle = {"schema_version": 1, "items": [{"id": "a"}]}
+        draft = {
+            "title": "Emma先生のニュース",
+            "description": "Description",
+            "overview": "Overview",
+            "items": [{
+                "id": "a",
+                "headline": "Headline",
+                "summary": "Summary",
+                "why_it_matters": "Reason",
+                "citations": [],
+            }],
+        }
+        with self.assertRaisesRegex(ValueError, "anonymous, non-first-person"):
+            validate_draft(bundle, draft)
+
     def test_publish_draft_writes_only_article_and_seen_state(self):
         now = datetime(2026, 7, 16, 7, 17, tzinfo=timezone.utc)
         item = Item("id-1", "Source title", "https://example.com/source", "Source", "Science", now.isoformat(), "Excerpt")
@@ -98,7 +116,7 @@ class DailySignalTests(unittest.TestCase):
             "items": [item.__dict__],
         }
         draft = {
-            "title": "Emma brief",
+            "title": "Editorial brief",
             "description": "Description",
             "overview": "Overview",
             "items": [{
@@ -120,7 +138,7 @@ class DailySignalTests(unittest.TestCase):
             draft_path.write_text(json.dumps(draft), encoding="utf-8")
             output = publish_draft(bundle_path, draft_path, content_dir, state_path, result_path)
             self.assertEqual(output.name, "2026-07-16-daily-signal.md")
-            self.assertIn('generated_by: "Emma / OpenClaw"', output.read_text(encoding="utf-8"))
+            self.assertIn('generated_by: "OpenClaw Editorial System"', output.read_text(encoding="utf-8"))
             self.assertEqual(json.loads(state_path.read_text(encoding="utf-8"))["ids"], ["id-1"])
             self.assertEqual(json.loads(result_path.read_text(encoding="utf-8"))["model"], MODEL)
 

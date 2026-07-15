@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish the legacy Emma Tech Deep-Dive and stock-market editions safely."""
+"""Publish the legacy Tech Deep-Dive and stock-market editions safely."""
 
 from __future__ import annotations
 
@@ -12,7 +12,13 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from scripts.daily_signal import Item, load_seen, yaml_string
-from scripts.emma_pipeline import GENERATOR, MODEL, prepare_bundle, write_json
+from scripts.emma_pipeline import (
+    GENERATOR,
+    MODEL,
+    prepare_bundle,
+    validate_editorial_voice,
+    write_json,
+)
 
 
 EDITIONS = ("deep-dive", "market")
@@ -132,7 +138,7 @@ def validate_deep_dive(bundle: dict[str, Any], draft: dict[str, Any]) -> dict[st
                 maximum=5,
             ),
         })
-    return {
+    normalized = {
         "title": _text(draft.get("title"), "title", one_line=True, max_chars=160),
         "description": _text(draft.get("description"), "description", one_line=True, max_chars=280),
         "tags": tags,
@@ -150,6 +156,8 @@ def validate_deep_dive(bundle: dict[str, Any], draft: dict[str, Any]) -> dict[st
         "conclusion": _prose(draft.get("conclusion"), "conclusion", max_chars=1600),
         "references": _url_list(draft.get("references"), "references", minimum=2, maximum=25),
     }
+    validate_editorial_voice(normalized)
+    return normalized
 
 
 def _news_list(value: Any, field: str, *, minimum: int, maximum: int) -> list[dict[str, str]]:
@@ -223,7 +231,7 @@ def validate_market(bundle: dict[str, Any], draft: dict[str, Any]) -> dict[str, 
             "source_url": _url(item.get("source_url"), f"focus_stocks[{index}].source_url"),
         })
 
-    return {
+    normalized = {
         "title": title,
         "description": _text(draft.get("description"), "description", one_line=True, max_chars=280),
         "source_ids": source_ids,
@@ -234,9 +242,15 @@ def validate_market(bundle: dict[str, Any], draft: dict[str, Any]) -> dict[str, 
         "economic_news": _news_list(draft.get("economic_news"), "economic_news", minimum=1, maximum=5),
         "global_markets": _news_list(draft.get("global_markets"), "global_markets", minimum=1, maximum=4),
         "focus_stocks": normalized_stocks,
-        "emma_summary": _prose(draft.get("emma_summary"), "emma_summary", max_chars=1400),
+        "editorial_summary": _prose(
+            draft.get("editorial_summary"),
+            "editorial_summary",
+            max_chars=1400,
+        ),
         "references": _url_list(draft.get("references"), "references", minimum=5, maximum=30),
     }
+    validate_editorial_voice(normalized)
+    return normalized
 
 
 def _front_matter(
@@ -288,9 +302,7 @@ def render_deep_dive(draft: dict[str, Any], local_now: datetime, source_count: i
         "",
         "---",
         "",
-        "*Emmaでした！次回もお楽しみに〜 🍫*",
-        "",
-        "> 本記事はEmma先生（OpenClaw）が公開情報を調査して執筆しています。重要な判断には一次情報をご確認ください。",
+        "> 本記事は公開情報をもとに編集されています。重要な判断には一次情報をご確認ください。",
         "",
     ])
     return "\n".join(lines)
@@ -344,13 +356,11 @@ def render_market(draft: dict[str, Any], local_now: datetime, source_count: int)
         ])
         lines.extend([f"- {point}" for point in item["watch_points"]])
         lines.extend(["", f"参考: <{item['source_url']}>", ""])
-    lines.extend(["## 💭 Emmaのまとめ", "", draft["emma_summary"], "", "## 📚 参考リンク", ""])
+    lines.extend(["## 💭 編集部のまとめ", "", draft["editorial_summary"], "", "## 📚 参考リンク", ""])
     lines.extend([f"- <{url}>" for url in draft["references"]])
     lines.extend([
         "",
         "---",
-        "",
-        "*Emmaでした！また次回〜 🍫*",
         "",
         "**免責**: この記事は情報提供目的です。投資判断は自己責任でお願いします。",
         "",

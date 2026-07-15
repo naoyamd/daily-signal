@@ -23,7 +23,7 @@ def candidate(item_id="source-1"):
 
 def deep_dive_draft():
     return {
-        "title": "Emmaの技術深掘り",
+        "title": "技術深掘り",
         "description": "技術を一次資料から解説します。",
         "tags": ["CAE", "AI"],
         "source_ids": ["source-1"],
@@ -70,7 +70,7 @@ def market_draft():
             "watch_points": ["材料", "リスク"],
             "source_url": f"https://example.com/stock-{i}",
         } for i in range(1, 6)],
-        "emma_summary": "翌取引日の確認事項です。",
+        "editorial_summary": "翌取引日の確認事項です。",
         "references": [f"https://example.com/reference-{i}" for i in range(1, 6)],
     }
 
@@ -97,6 +97,10 @@ class LegacyEditionTests(unittest.TestCase):
         draft = deep_dive_draft()
         draft["introduction"] = "本文に https://example.com を混ぜない"
         with self.assertRaisesRegex(ValueError, "citation fields"):
+            validate_deep_dive(bundle, draft)
+        draft = deep_dive_draft()
+        draft["conclusion"] = "私はこの技術に注目しています。"
+        with self.assertRaisesRegex(ValueError, "anonymous, non-first-person"):
             validate_deep_dive(bundle, draft)
 
     def test_market_requires_nikkei_topix_and_exactly_five_stocks(self):
@@ -134,6 +138,8 @@ class LegacyEditionTests(unittest.TestCase):
             output = publish_edition("market", bundle_path, draft_path, root / "content", state_path, result_path)
             self.assertEqual(output.name, "stock-report-2026-07-15.md")
             self.assertIn("本日の注目5銘柄", output.read_text(encoding="utf-8"))
+            self.assertNotIn("Emma", output.read_text(encoding="utf-8"))
+            self.assertNotIn("エマ", output.read_text(encoding="utf-8"))
             self.assertEqual(json.loads(state_path.read_text(encoding="utf-8"))["ids"], ["source-1"])
             self.assertEqual(json.loads(result_path.read_text(encoding="utf-8"))["edition"], "market")
 
