@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Emma Daily Signal update every morning
+
+[Timer]
+OnCalendar=*-*-* 07:17:00 Asia/Tokyo
+Persistent=true
+RandomizedDelaySec=2m
+Unit=daily-signal-emma.service
+
+[Install]
+WantedBy=timers.target

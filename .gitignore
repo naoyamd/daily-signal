@@ -7,4 +7,5 @@ resources/_gen/
 .hugo_build.lock
 .env
 data/cache/
+.daily-signal/
 

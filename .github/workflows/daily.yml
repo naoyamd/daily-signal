@@ -1,20 +1,14 @@
-name: Generate daily brief
+name: Verify Emma publishing pipeline
 
 on:
-  schedule:
-    - cron: "17 22 * * *"
+  pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  actions: write
-
-concurrency:
-  group: daily-brief
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  generate:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,25 +17,6 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - name: Generate brief
-        env:
-          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
-          XAI_MODEL: ${{ vars.XAI_MODEL || 'grok-4.3' }}
-          TZ: Asia/Tokyo
-        run: python scripts/daily_signal.py
-      - name: Commit new content
-        run: |
-          if [[ -z "$(git status --porcelain -- content/daily data/seen.json)" ]]; then
-            echo "No new content"
-            exit 0
-          fi
-          git config user.name "daily-signal[bot]"
-          git config user.email "daily-signal[bot]@users.noreply.github.com"
-          git add content/daily data/seen.json
-          git commit -m "content: publish daily brief $(date +%F)"
-          git push
-      - name: Deploy updated site
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run pages.yml --ref main
-
+      - run: python -m unittest discover -s tests
+      - name: Validate publisher shell syntax
+        run: bash -n ops/run-emma-update.sh
