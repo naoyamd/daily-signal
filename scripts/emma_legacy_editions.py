@@ -11,11 +11,13 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from scripts.daily_signal import Item, load_seen, yaml_string
+from scripts.editorial import Item, load_seen, yaml_string
 from scripts.emma_pipeline import (
     GENERATOR,
     MODEL,
     prepare_bundle,
+    write_collection_feedback,
+    validate_candidate_feedback,
     validate_editorial_voice,
     write_json,
 )
@@ -93,14 +95,20 @@ def _source_ids(bundle: dict[str, Any], value: Any) -> list[str]:
 
 def prepare_edition(
     edition: str,
-    config_path: Path,
+    handoff_path: Path,
     state_path: Path,
     output_path: Path,
     now: datetime | None = None,
 ) -> dict[str, Any]:
     if edition not in EDITIONS:
         raise ValueError(f"unsupported edition: {edition}")
-    bundle = prepare_bundle(config_path, state_path, output_path, now=now)
+    bundle = prepare_bundle(
+        handoff_path,
+        state_path,
+        output_path,
+        now=now,
+        expected_edition=edition,
+    )
     local_now = datetime.fromisoformat(bundle["generated_at"])
     bundle["edition"] = edition
     if edition == "deep-dive":
@@ -155,6 +163,7 @@ def validate_deep_dive(bundle: dict[str, Any], draft: dict[str, Any]) -> dict[st
         ),
         "conclusion": _prose(draft.get("conclusion"), "conclusion", max_chars=1600),
         "references": _url_list(draft.get("references"), "references", minimum=2, maximum=25),
+        "candidate_feedback": validate_candidate_feedback(bundle, draft),
     }
     validate_editorial_voice(normalized)
     return normalized
@@ -248,6 +257,7 @@ def validate_market(bundle: dict[str, Any], draft: dict[str, Any]) -> dict[str, 
             max_chars=1400,
         ),
         "references": _url_list(draft.get("references"), "references", minimum=5, maximum=30),
+        "candidate_feedback": validate_candidate_feedback(bundle, draft),
     }
     validate_editorial_voice(normalized)
     return normalized
@@ -377,30 +387,32 @@ def publish_edition(
     content_dir: Path,
     state_path: Path,
     result_path: Path | None = None,
+    feedback_outbox: Path | None = None,
 ) -> Path:
     bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
     draft = json.loads(draft_path.read_text(encoding="utf-8"))
     if bundle.get("edition") != edition:
         raise ValueError("candidate bundle edition mismatch")
-    selected = [Item(**item) for item in bundle.get("items", [])]
+    candidates = [Item(**item) for item in bundle.get("items", [])]
     local_now = datetime.fromisoformat(bundle["generated_at"])
     if edition == "deep-dive":
         normalized = validate_deep_dive(bundle, draft)
         filename = f"{local_now:%Y-%m-%d}-tech-deep-dive.md"
-        markdown = render_deep_dive(normalized, local_now, len(selected))
+        markdown = render_deep_dive(normalized, local_now, len(normalized["source_ids"]))
     elif edition == "market":
         normalized = validate_market(bundle, draft)
         filename = f"stock-report-{local_now:%Y-%m-%d}.md"
-        markdown = render_market(normalized, local_now, len(selected))
+        markdown = render_market(normalized, local_now, len(normalized["source_ids"]))
     else:
         raise ValueError(f"unsupported edition: {edition}")
 
     output = content_dir / filename
     if output.exists():
         raise FileExistsError(f"refusing to overwrite existing article: {output}")
+    write_collection_feedback(bundle, draft, output, feedback_outbox)
     content_dir.mkdir(parents=True, exist_ok=True)
     output.write_text(markdown, encoding="utf-8")
-    seen = load_seen(state_path) | {item.id for item in selected}
+    seen = load_seen(state_path) | {item.id for item in candidates}
     write_json(state_path, {"ids": sorted(seen)})
     if result_path:
         write_json(result_path, {
@@ -408,7 +420,8 @@ def publish_edition(
             "edition": edition,
             "article": str(output),
             "title": normalized["title"],
-            "source_count": len(selected),
+            "source_count": len(normalized["source_ids"]),
+            "candidate_count": len(candidates),
             "generated_by": GENERATOR,
             "model": MODEL,
         })
@@ -420,7 +433,7 @@ def main() -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     prepare = subparsers.add_parser("prepare")
     prepare.add_argument("--edition", choices=EDITIONS, required=True)
-    prepare.add_argument("--config", type=Path)
+    prepare.add_argument("--handoff", type=Path, required=True)
     prepare.add_argument("--state", type=Path)
     prepare.add_argument("--output", type=Path)
 
@@ -431,13 +444,18 @@ def main() -> int:
     publish.add_argument("--content-dir", type=Path, default=Path("content/daily"))
     publish.add_argument("--state", type=Path)
     publish.add_argument("--result", type=Path)
+    publish.add_argument("--feedback-outbox", type=Path)
     args = parser.parse_args()
 
     if args.command == "prepare":
-        config_path = args.config or Path("config/market_sources.yaml" if args.edition == "market" else "config/sources.yaml")
         state_path = args.state or Path(f"data/seen-{args.edition}.json")
         output_path = args.output or Path(f".daily-signal/{args.edition}/candidates.json")
-        bundle = prepare_edition(args.edition, config_path, state_path, output_path)
+        bundle = prepare_edition(
+            args.edition,
+            args.handoff,
+            state_path,
+            output_path,
+        )
         print(output_path)
         return 0 if bundle["items"] else 3
 
@@ -452,6 +470,7 @@ def main() -> int:
         args.content_dir,
         state_path,
         result_path,
+        feedback_outbox=args.feedback_outbox,
     )
     print(output)
     return 0

@@ -1,8 +1,8 @@
 [Unit]
 Description=Daily Signal closing market report on OpenClaw
-After=docker.service network-online.target
+After=docker.service network-online.target daily-signal-collector@market.service
 Wants=network-online.target
-Requires=docker.service
+Requires=docker.service daily-signal-collector@market.service
 
 [Service]
 Type=oneshot

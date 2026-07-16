@@ -1,10 +1,8 @@
 import json
 import tempfile
 import unittest
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from scripts.daily_signal import Item, rank
 from scripts.emma_legacy_editions import publish_edition, validate_deep_dive, validate_market
 
 
@@ -76,18 +74,6 @@ def market_draft():
 
 
 class LegacyEditionTests(unittest.TestCase):
-    def test_sunday_uses_seven_day_lookback(self):
-        sunday = datetime(2026, 7, 12, 3, tzinfo=timezone.utc)
-        item = Item("old", "Engineering", "https://example.com/old", "A", "Tech", (sunday - timedelta(days=6)).isoformat(), "", 1)
-        config = {
-            "site": {"timezone": "Asia/Tokyo", "lookback_hours": 48},
-            "topics": [],
-            "sunday_editorial": {"lookback_hours": 168},
-        }
-        self.assertEqual([value.id for value in rank([item], config, set(), sunday)], ["old"])
-        monday = sunday + timedelta(days=1)
-        self.assertEqual(rank([item], config, set(), monday), [])
-
     def test_deep_dive_rejects_unknown_candidate_and_url_in_prose(self):
         bundle = {"items": [candidate()]}
         draft = deep_dive_draft()
