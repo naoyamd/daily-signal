@@ -14,7 +14,9 @@
 5. 噂は公式確認の有無を明示し、SNSだけを根拠にしない。数値は金融情報サイトまたは取引所・企業資料で確認する。
 6. 執筆者名、自分への言及、一人称、署名、挨拶、キャラクター口調を出さず、中立で抑制された編集文体にする。
 7. 本文フィールドにURLを書かず、`source_url`または`references`へ分離する。
-8. Git操作やMarkdownファイルの作成は行わず、次のJSONだけを出力先へ保存する。
+8. 全候補について、市場関連性・情報源品質・新規性を0.0〜1.0で評価し、採用しない候補も
+   `candidate_feedback`へ元順序で必ず残す。これは次回収集の学習データになる。
+9. Git操作やMarkdownファイルの作成は行わず、次のJSONだけを出力先へ保存する。
 
 ```json
 {
@@ -47,8 +49,11 @@
     }
   ],
   "editorial_summary": "当日のまとめと翌取引日の確認事項",
-  "references": ["https URLを5〜30件"]
+  "references": ["https URLを5〜30件"],
+  "candidate_feedback": [
+    {"id": "候補id", "relevance": 0.0, "quality": 0.0, "novelty": 0.0, "reason": "短い根拠"}
+  ]
 }
 ```
 
-`focus_stocks`は必ず5銘柄、`indices`は日経平均とTOPIXを含む2〜8項目にしてください。保存後にJSON、候補ID、日付、全URLを読み直してください。
+`focus_stocks`は必ず5銘柄、`indices`は日経平均とTOPIXを含む2〜8項目にしてください。保存後にJSON、候補ID、日付、全URL、全候補の評価を読み直してください。

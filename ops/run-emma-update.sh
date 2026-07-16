@@ -2,14 +2,16 @@
 set -Eeuo pipefail
 
 EDITION="${1:-digest}"
-REPO_DIR="${DAILY_SIGNAL_REPO_DIR:-/opt/openclaw/data/workspace/daily-signal}"
+REPO_DIR="/opt/openclaw/data/workspace/daily-signal"
 OPENCLAW_DIR="${OPENCLAW_DIR:-/opt/openclaw/source}"
 PYTHON="${DAILY_SIGNAL_PYTHON:-${REPO_DIR}/.venv/bin/python}"
 CONTAINER_REPO="/home/node/.openclaw/workspace/daily-signal"
 MODEL="${DAILY_SIGNAL_MODEL:-openai/gpt-5.6-luna}"
 THINKING="${DAILY_SIGNAL_THINKING:-xhigh}"
 DISCORD_USER_ID="${DAILY_SIGNAL_DISCORD_USER_ID:-}"
-LOCK_FILE="${DAILY_SIGNAL_LOCK_FILE:-/tmp/daily-signal-emma.lock}"
+EXCHANGE_DIR="/var/lib/daily-signal-exchange"
+LOCK_FILE="${EXCHANGE_DIR}/feedback/.publisher.lock"
+FEEDBACK_OUTBOX="${EXCHANGE_DIR}/feedback"
 
 case "$EDITION" in
   digest)
@@ -18,6 +20,7 @@ case "$EDITION" in
     STATE_PATH="data/seen.json"
     ARTICLE_PATH="content/daily/$(TZ=Asia/Tokyo date +%F)-daily-signal.md"
     EDITION_LABEL="AI Digest"
+    CANDIDATE_HANDOFF="${EXCHANGE_DIR}/candidates/digest.json"
     ;;
   deep-dive)
     WORK_DIR="${REPO_DIR}/.daily-signal/deep-dive"
@@ -25,6 +28,7 @@ case "$EDITION" in
     STATE_PATH="data/seen-deep-dive.json"
     ARTICLE_PATH="content/daily/$(TZ=Asia/Tokyo date +%F)-tech-deep-dive.md"
     EDITION_LABEL="Tech Deep-Dive"
+    CANDIDATE_HANDOFF="${EXCHANGE_DIR}/candidates/deep-dive.json"
     ;;
   market)
     WORK_DIR="${REPO_DIR}/.daily-signal/market"
@@ -32,6 +36,7 @@ case "$EDITION" in
     STATE_PATH="data/seen-market.json"
     ARTICLE_PATH="content/daily/stock-report-$(TZ=Asia/Tokyo date +%F).md"
     EDITION_LABEL="夕方の株式レポート"
+    CANDIDATE_HANDOFF="${EXCHANGE_DIR}/candidates/market.json"
     ;;
   *)
     echo "Unsupported edition: $EDITION" >&2
@@ -39,7 +44,7 @@ case "$EDITION" in
     ;;
 esac
 
-mkdir -p "$WORK_DIR"
+mkdir -p "$WORK_DIR" "$FEEDBACK_OUTBOX"
 exec 9>"$LOCK_FILE"
 flock 9
 
@@ -67,18 +72,27 @@ cd "$REPO_DIR"
 
 git pull --ff-only origin main
 today="$(TZ=Asia/Tokyo date +%F)"
+
+[[ -f "$CANDIDATE_HANDOFF" ]] || {
+  echo "Collector handoff not found: $CANDIDATE_HANDOFF" >&2
+  exit 1
+}
 if [[ -f "$ARTICLE_PATH" ]]; then
-  echo "${EDITION_LABEL} for ${today} already exists; nothing to do."
-  notify "☕ Daily Signal: ${today}の${EDITION_LABEL}は公開済みのため、重複更新を見送りました。"
+  echo "${EDITION_LABEL} for ${today} already exists; publisher skipped."
+  notify "☕ Daily Signal: ${today}の${EDITION_LABEL}は公開済みです。"
   exit 0
 fi
 
 set +e
 if [[ "$EDITION" == "digest" ]]; then
-  "$PYTHON" -m scripts.emma_pipeline prepare --output "$WORK_DIR/candidates.json"
+  "$PYTHON" -m scripts.emma_pipeline prepare \
+    --handoff "$CANDIDATE_HANDOFF" \
+    --state "$STATE_PATH" \
+    --output "$WORK_DIR/candidates.json"
 else
   "$PYTHON" -m scripts.emma_legacy_editions prepare \
     --edition "$EDITION" \
+    --handoff "$CANDIDATE_HANDOFF" \
     --state "$STATE_PATH" \
     --output "$WORK_DIR/candidates.json"
 fi
@@ -113,14 +127,16 @@ if [[ "$EDITION" == "digest" ]]; then
   "$PYTHON" -m scripts.emma_pipeline publish \
     --bundle "$WORK_DIR/candidates.json" \
     --draft "$WORK_DIR/draft.json" \
-    --result "$WORK_DIR/publish-result.json"
+    --result "$WORK_DIR/publish-result.json" \
+    --feedback-outbox "$FEEDBACK_OUTBOX"
 else
   "$PYTHON" -m scripts.emma_legacy_editions publish \
     --edition "$EDITION" \
     --bundle "$WORK_DIR/candidates.json" \
     --draft "$WORK_DIR/draft.json" \
     --state "$STATE_PATH" \
-    --result "$WORK_DIR/publish-result.json"
+    --result "$WORK_DIR/publish-result.json" \
+    --feedback-outbox "$FEEDBACK_OUTBOX"
 fi
 
 article="$($PYTHON -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["article"])' "$WORK_DIR/publish-result.json")"
