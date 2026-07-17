@@ -9,6 +9,7 @@ CONTAINER_REPO="/home/node/.openclaw/workspace/daily-signal"
 MODEL="${DAILY_SIGNAL_MODEL:-openai/gpt-5.6-luna}"
 THINKING="${DAILY_SIGNAL_THINKING:-xhigh}"
 DISCORD_USER_ID="${DAILY_SIGNAL_DISCORD_USER_ID:-}"
+DISCORD_CHANNEL_ID="${DAILY_SIGNAL_DISCORD_CHANNEL_ID:-}"
 EXCHANGE_DIR="/var/lib/daily-signal-exchange"
 LOCK_FILE="${EXCHANGE_DIR}/feedback/.publisher.lock"
 FEEDBACK_OUTBOX="${EXCHANGE_DIR}/feedback"
@@ -50,9 +51,16 @@ flock 9
 
 notify() {
   local message="$1"
-  [[ -n "$DISCORD_USER_ID" ]] || return 0
+  local target=""
+  if [[ -n "$DISCORD_CHANNEL_ID" ]]; then
+    target="channel:${DISCORD_CHANNEL_ID}"
+  elif [[ -n "$DISCORD_USER_ID" ]]; then
+    target="user:${DISCORD_USER_ID}"
+  else
+    return 0
+  fi
   docker compose -f "$OPENCLAW_DIR/docker-compose.yml" run -T --rm openclaw-cli \
-    message send --channel discord --target "user:${DISCORD_USER_ID}" --message "$message" \
+    message send --channel discord --target "$target" --message "$message" \
     >/dev/null 2>&1 || true
 }
 
