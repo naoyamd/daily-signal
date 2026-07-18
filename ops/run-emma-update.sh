@@ -10,6 +10,7 @@ MODEL="${DAILY_SIGNAL_MODEL:-openai/gpt-5.6-luna}"
 THINKING="${DAILY_SIGNAL_THINKING:-xhigh}"
 DISCORD_USER_ID="${DAILY_SIGNAL_DISCORD_USER_ID:-}"
 DISCORD_CHANNEL_ID="${DAILY_SIGNAL_DISCORD_CHANNEL_ID:-}"
+PUBLIC_BASE_URL="${DAILY_SIGNAL_PUBLIC_BASE_URL:-https://blog.nightly.dedyn.io}"
 EXCHANGE_DIR="/var/lib/daily-signal-exchange"
 LOCK_FILE="${EXCHANGE_DIR}/feedback/.publisher.lock"
 FEEDBACK_OUTBOX="${EXCHANGE_DIR}/feedback"
@@ -45,6 +46,11 @@ case "$EDITION" in
     ;;
 esac
 
+[[ "$PUBLIC_BASE_URL" == https://* ]] || {
+  echo "DAILY_SIGNAL_PUBLIC_BASE_URL must use HTTPS." >&2
+  exit 2
+}
+
 mkdir -p "$WORK_DIR" "$FEEDBACK_OUTBOX"
 exec 9>"$LOCK_FILE"
 flock 9
@@ -62,6 +68,22 @@ notify() {
   docker compose -f "$OPENCLAW_DIR/docker-compose.yml" run -T --rm openclaw-cli \
     message send --channel discord --target "$target" --message "$message" \
     >/dev/null 2>&1 || true
+}
+
+public_article_url() {
+  local article_path="$1"
+  local relative
+  [[ "$article_path" == content/*.md ]] || {
+    echo "Article path cannot be converted to a public URL: $article_path" >&2
+    return 1
+  }
+  [[ "$PUBLIC_BASE_URL" == https://* ]] || {
+    echo "DAILY_SIGNAL_PUBLIC_BASE_URL must use HTTPS." >&2
+    return 1
+  }
+  relative="${article_path#content/}"
+  relative="${relative%.md}"
+  printf '%s/%s/\n' "${PUBLIC_BASE_URL%/}" "$relative"
 }
 
 fail() {
@@ -149,6 +171,7 @@ fi
 
 article="$($PYTHON -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["article"])' "$WORK_DIR/publish-result.json")"
 title="$($PYTHON -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["title"])' "$WORK_DIR/publish-result.json")"
+article_url="$(public_article_url "$article")"
 
 unexpected="$(git status --porcelain | cut -c4- | grep -Fvx -e "$article" -e "$STATE_PATH" || true)"
 if [[ -n "$unexpected" ]]; then
@@ -165,5 +188,5 @@ git config user.email "daily-signal[bot]@users.noreply.github.com"
 git commit -m "content: publish ${EDITION_LABEL} ${today}"
 git push origin HEAD:main
 
-notify "📝 Daily Signal ${EDITION_LABEL}を更新しました: ${title}"
+notify "📝 Daily Signal ${EDITION_LABEL}を更新しました: ${title} — ${article_url}"
 echo "Published ${article}: ${title}"
