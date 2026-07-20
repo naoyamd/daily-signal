@@ -24,7 +24,14 @@ id "$SERVICE_USER" >/dev/null 2>&1 || { echo "Service user not found: $SERVICE_U
   echo "Blog repository has tracked local changes." >&2
   exit 1
 }
-git -C "$REPO_DIR" remote get-url origin >/dev/null
+origin_url="$(git -C "$REPO_DIR" remote get-url origin)"
+case "$origin_url" in
+  git@github.com:*|ssh://git@github.com/*) ;;
+  *)
+    echo "Blog repository origin must use GitHub SSH: $origin_url" >&2
+    exit 1
+    ;;
+esac
 docker compose version >/dev/null
 [[ -f /etc/systemd/system/daily-signal-collector@.service ]] || {
   echo "Install daily-signal-collector before the blog units." >&2
