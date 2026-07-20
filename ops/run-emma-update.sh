@@ -8,6 +8,8 @@ PYTHON="${DAILY_SIGNAL_PYTHON:-${REPO_DIR}/.venv/bin/python}"
 CONTAINER_REPO="/home/node/.openclaw/workspace/daily-signal"
 MODEL="${DAILY_SIGNAL_MODEL:-openai/gpt-5.6-luna}"
 THINKING="${DAILY_SIGNAL_THINKING:-xhigh}"
+AGENT_ATTEMPTS="${DAILY_SIGNAL_AGENT_ATTEMPTS:-3}"
+AGENT_RETRY_DELAY_SECONDS="${DAILY_SIGNAL_AGENT_RETRY_DELAY_SECONDS:-30}"
 DISCORD_USER_ID="${DAILY_SIGNAL_DISCORD_USER_ID:-}"
 DISCORD_CHANNEL_ID="${DAILY_SIGNAL_DISCORD_CHANNEL_ID:-}"
 PUBLIC_BASE_URL="${DAILY_SIGNAL_PUBLIC_BASE_URL:-https://blog.nightly.dedyn.io}"
@@ -48,6 +50,14 @@ esac
 
 [[ "$PUBLIC_BASE_URL" == https://* ]] || {
   echo "DAILY_SIGNAL_PUBLIC_BASE_URL must use HTTPS." >&2
+  exit 2
+}
+[[ "$AGENT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "DAILY_SIGNAL_AGENT_ATTEMPTS must be a positive integer." >&2
+  exit 2
+}
+[[ "$AGENT_RETRY_DELAY_SECONDS" =~ ^[0-9]+$ ]] || {
+  echo "DAILY_SIGNAL_AGENT_RETRY_DELAY_SECONDS must be a non-negative integer." >&2
   exit 2
 }
 
@@ -99,6 +109,14 @@ cd "$REPO_DIR"
   echo "Refusing to run with tracked local changes." >&2
   exit 1
 }
+origin_url="$(git remote get-url origin)"
+case "$origin_url" in
+  git@github.com:*|ssh://git@github.com/*) ;;
+  *)
+    echo "origin must use GitHub SSH because the systemd unit supplies a deploy key: $origin_url" >&2
+    exit 1
+    ;;
+esac
 
 git pull --ff-only origin main
 today="$(TZ=Asia/Tokyo date +%F)"
@@ -138,16 +156,44 @@ fi
 
 rm -f "$WORK_DIR/draft.json" "$WORK_DIR/publish-result.json" "$WORK_DIR/agent-result.json"
 
-docker compose -f "$OPENCLAW_DIR/docker-compose.yml" run -T --rm openclaw-cli agent \
-  --session-id "daily-signal-${EDITION}-${today}" \
-  --model "$MODEL" \
-  --thinking "$THINKING" \
-  --message-file "$CONTAINER_PROMPT" \
-  --json \
-  --timeout 1800 \
-  >"$WORK_DIR/agent-result.json"
+run_id="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+agent_status=1
+for ((attempt = 1; attempt <= AGENT_ATTEMPTS; attempt++)); do
+  rm -f "$WORK_DIR/draft.json" "$WORK_DIR/agent-result.json"
+  echo "Starting editorial agent attempt ${attempt}/${AGENT_ATTEMPTS}."
+  if docker compose -f "$OPENCLAW_DIR/docker-compose.yml" run -T --rm openclaw-cli agent \
+    --session-id "daily-signal-${EDITION}-${today}-${run_id}-a${attempt}" \
+    --model "$MODEL" \
+    --thinking "$THINKING" \
+    --message-file "$CONTAINER_PROMPT" \
+    --json \
+    --timeout 1800 \
+    >"$WORK_DIR/agent-result.json"; then
+    agent_status=0
+  else
+    agent_status=$?
+  fi
+
+  if [[ -f "$WORK_DIR/draft.json" ]]; then
+    if [[ $agent_status -ne 0 ]]; then
+      echo "Editorial agent exited with status ${agent_status}, but produced a draft; continuing with deterministic validation." >&2
+    fi
+    break
+  fi
+  if [[ $agent_status -eq 0 ]]; then
+    break
+  fi
+  if (( attempt < AGENT_ATTEMPTS )); then
+    echo "Editorial agent attempt ${attempt} failed with status ${agent_status}; retrying in ${AGENT_RETRY_DELAY_SECONDS}s." >&2
+    sleep "$AGENT_RETRY_DELAY_SECONDS"
+  fi
+done
 
 if [[ ! -f "$WORK_DIR/draft.json" ]]; then
+  if [[ $agent_status -ne 0 ]]; then
+    echo "Editorial agent failed after ${AGENT_ATTEMPTS} attempt(s)." >&2
+    exit "$agent_status"
+  fi
   echo "The editorial agent skipped ${EDITION_LABEL}; no draft was produced."
   notify "☕ Daily Signal ${EDITION_LABEL}: 公開条件を満たさなかったため、更新を見送りました。"
   exit 0

@@ -8,6 +8,23 @@ RUNNER = ROOT / "ops" / "run-emma-update.sh"
 
 
 class RunnerConfigurationTests(unittest.TestCase):
+    def test_editorial_agent_retries_with_fresh_sessions_and_salvages_draft(self):
+        runner = RUNNER.read_text(encoding="utf-8")
+
+        self.assertIn('AGENT_ATTEMPTS="${DAILY_SIGNAL_AGENT_ATTEMPTS:-3}"', runner)
+        self.assertIn('for ((attempt = 1; attempt <= AGENT_ATTEMPTS; attempt++))', runner)
+        self.assertIn('${run_id}-a${attempt}', runner)
+        self.assertIn('if [[ -f "$WORK_DIR/draft.json" ]]; then', runner)
+        self.assertIn('but produced a draft; continuing with deterministic validation.', runner)
+        self.assertIn('sleep "$AGENT_RETRY_DELAY_SECONDS"', runner)
+
+    def test_runner_requires_ssh_origin_for_deploy_key(self):
+        runner = RUNNER.read_text(encoding="utf-8")
+
+        self.assertIn('origin_url="$(git remote get-url origin)"', runner)
+        self.assertIn('git@github.com:*|ssh://git@github.com/*', runner)
+        self.assertIn('origin must use GitHub SSH', runner)
+
     def test_discord_channel_takes_priority_with_user_fallback(self):
         runner = RUNNER.read_text(encoding="utf-8")
 
