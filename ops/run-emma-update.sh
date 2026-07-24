@@ -104,14 +104,22 @@ trap 'fail "$LINENO"' ERR
 
 cd "$REPO_DIR"
 [[ -x "$PYTHON" ]] || { echo "Python environment not found: $PYTHON" >&2; exit 1; }
-[[ "$(git branch --show-current)" == "main" ]] || { echo "Repository must be on main." >&2; exit 1; }
 [[ -z "$(git status --porcelain --untracked-files=no)" ]] || {
   echo "Refusing to run with tracked local changes." >&2
   exit 1
 }
+current_branch="$(git branch --show-current)"
+if [[ "$current_branch" != "main" ]]; then
+  echo "Repository is on ${current_branch:-detached HEAD}; returning clean workspace to main."
+  git switch main
+fi
 origin_url="$(git remote get-url origin)"
 case "$origin_url" in
   git@github.com:*|ssh://git@github.com/*) ;;
+  https://github.com/naoyamd/daily-signal|https://github.com/naoyamd/daily-signal.git)
+    echo "Restoring the canonical GitHub SSH origin for the publisher deploy key."
+    git remote set-url origin git@github.com:naoyamd/daily-signal.git
+    ;;
   *)
     echo "origin must use GitHub SSH because the systemd unit supplies a deploy key: $origin_url" >&2
     exit 1

@@ -8,6 +8,20 @@ RUNNER = ROOT / "ops" / "run-emma-update.sh"
 
 
 class RunnerConfigurationTests(unittest.TestCase):
+    def test_clean_non_main_workspace_returns_to_main(self):
+        runner = RUNNER.read_text(encoding="utf-8")
+
+        clean_check = '[[ -z "$(git status --porcelain --untracked-files=no)" ]]'
+        branch_read = 'current_branch="$(git branch --show-current)"'
+        branch_switch = "git switch main"
+        pull = "git pull --ff-only origin main"
+
+        self.assertIn(clean_check, runner)
+        self.assertIn(branch_read, runner)
+        self.assertIn(branch_switch, runner)
+        self.assertLess(runner.index(clean_check), runner.index(branch_switch))
+        self.assertLess(runner.index(branch_switch), runner.index(pull))
+
     def test_editorial_agent_retries_with_fresh_sessions_and_salvages_draft(self):
         runner = RUNNER.read_text(encoding="utf-8")
 
@@ -23,6 +37,13 @@ class RunnerConfigurationTests(unittest.TestCase):
 
         self.assertIn('origin_url="$(git remote get-url origin)"', runner)
         self.assertIn('git@github.com:*|ssh://git@github.com/*', runner)
+        self.assertIn(
+            "https://github.com/naoyamd/daily-signal.git)", runner
+        )
+        self.assertIn(
+            "git remote set-url origin git@github.com:naoyamd/daily-signal.git",
+            runner,
+        )
         self.assertIn('origin must use GitHub SSH', runner)
 
     def test_discord_channel_takes_priority_with_user_fallback(self):

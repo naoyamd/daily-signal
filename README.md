@@ -70,6 +70,11 @@ sudo systemctl enable --now \
 これらのパスと実行ユーザーはsystemd unitと揃えた固定値です。installerはcollector unit、Git状態、
 仮想環境、exchange書込権限を事前確認し、timerを自動起動しません。
 
+定期実行時にblog workspaceが手動作業用ブランチへ残っていても、tracked fileに変更がなければ
+publisherは自動で`main`へ戻してから更新します。originがこのリポジトリのcanonical HTTPS URLへ
+変更されていた場合も、Deploy Keyを使うSSH URLへ戻します。tracked fileに未保存変更がある場合や、
+別リポジトリを指すoriginは安全のため従来どおり発行を停止します。
+
 Discord通知が必要な場合、`/etc/default/daily-signal-emma`へ次を設定します。
 
 ```bash
