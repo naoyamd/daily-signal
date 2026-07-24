@@ -74,6 +74,38 @@ def draft() -> dict:
 
 
 class EditorialPipelineTests(unittest.TestCase):
+    def test_renderer_does_not_emit_trailing_whitespace_without_publish_time(self):
+        now = datetime.now(timezone.utc)
+        item = Item(
+            id="source-1",
+            title="Source title",
+            url="https://example.com/source",
+            source="Example",
+            category="Science",
+            published_at="",
+            excerpt="Summary",
+        )
+        digest = {
+            "title": "Digest",
+            "description": "Description",
+            "overview": "Overview",
+            "items": [
+                {
+                    "id": "source-1",
+                    "headline": "Headline",
+                    "summary": "Summary",
+                    "why_it_matters": "Reason",
+                    "citations": [],
+                }
+            ],
+        }
+
+        rendered = render_markdown(digest, [item], now, "test-model")
+
+        self.assertFalse(
+            any(line.endswith((" ", "\t")) for line in rendered.splitlines())
+        )
+
     def test_prepare_imports_versioned_handoff_and_filters_seen(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

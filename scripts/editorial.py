@@ -83,7 +83,7 @@ def render_markdown(
             f"**💡 注目しておきたい理由:** {summary['why_it_matters']}",
             "",
             f"- 🔗 情報源: [{source.source}]({source.url})",
-            f"- 🕰️ 公開日時: {source.published_at}",
+            f"- 🕰️ 公開日時: {source.published_at}".rstrip(),
             f"- 🗂️ 分類: {source.category}",
             "",
         ])
