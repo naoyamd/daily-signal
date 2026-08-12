@@ -6,7 +6,7 @@ on:
     paths:
       - ".github/workflows/development-diary.yml"
   schedule:
-    - cron: "45 17 * * *"
+    - cron: "45 20 * * *"
   workflow_dispatch:
 
 permissions:
