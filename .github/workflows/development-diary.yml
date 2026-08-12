@@ -1,0 +1,68 @@
+name: Ensure daily development diary
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/development-diary.yml"
+  schedule:
+    - cron: "45 17 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: development-diary
+  cancel-in-progress: false
+
+jobs:
+  ensure-diary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure previous day's diary exists
+        id: diary
+        shell: bash
+        run: |
+          set -euo pipefail
+          day="$(TZ=Asia/Tokyo date -d yesterday +%F)"
+          path="content/daily/${day}-development-diary.md"
+          echo "day=$day" >> "$GITHUB_OUTPUT"
+
+          if [[ -f "$path" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          cat > "$path" <<EOF
+          ---
+          title: "開発日誌 ${day} — 記録なし"
+          date: ${day}T23:59:00+09:00
+          draft: false
+          description: "公開できる作業記録が見つからなかった日の開発日誌。"
+          categories: ["開発日誌"]
+          tags: ["開発", "Codex"]
+          generated_by: "GitHub Actions"
+          ---
+
+          ## 今日やったこと
+
+          ### 記録確認
+
+          - **結果**: 公開できる作業記録は見つからなかった。
+          - **扱い**: 後から安全な記録が届いた場合は、この日誌を更新する。
+          EOF
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit diary
+        if: steps.diary.outputs.changed == 'true'
+        env:
+          DAY: ${{ steps.diary.outputs.day }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "content/daily/${DAY}-development-diary.md"
+          git commit -m "content: publish development diary ${DAY}"
+          git push
