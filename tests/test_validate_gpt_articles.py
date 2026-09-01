@@ -8,6 +8,8 @@ from scripts.validate_gpt_articles import validate_article
 
 
 VALID = '''---
+article_schema: "daily-signal-article/v1"
+policy_version: 2
 title: "設計AIを工程へ組み込む"
 date: 2026-09-02T07:20:00+09:00
 draft: false
@@ -17,6 +19,11 @@ tags: ["デイリーダイジェスト"]
 generated_by: "ChatGPT Scheduled Writer"
 model: "ChatGPT Scheduled Task"
 source_count: 1
+selected_count: 1
+wildcard_count: 0
+curated_source: "gpt_handoff/curated/2026-09-02.json"
+published_item_ids: ["item-1"]
+event_keys: ["example:agent:2026-09-01"]
 generation_cost_usd: 0
 ---
 
@@ -39,6 +46,18 @@ generation_cost_usd: 0
 > 本記事は公開情報をもとに編集されています。重要な判断にはリンク先の一次情報をご確認ください。
 '''
 
+WILDCARD = '''
+# 今日の紛れ枠
+
+### 制約付き生成の新しい実装
+
+公開資料は、生成過程へ工学制約を組み込み、後処理だけに依存しない構成を示している。適用範囲は限定されるが、設計生成へ展開できる可能性がある。
+
+**追う理由:** 生成後に大量廃棄する方式から、制約を満たす探索空間へ移るシグナルだからである。
+
+- 🔗 情報源: [Example Research](https://example.org/paper)
+'''
+
 
 class ValidateGptArticleTest(unittest.TestCase):
     def check(self, text: str):
@@ -50,6 +69,21 @@ class ValidateGptArticleTest(unittest.TestCase):
     def test_valid_article(self):
         result = self.check(VALID)
         self.assertTrue(result.checked)
+        self.assertEqual([], result.errors)
+
+    def test_valid_article_with_wildcard(self):
+        article = VALID.replace("source_count: 1", "source_count: 2")
+        article = article.replace("wildcard_count: 0", "wildcard_count: 1")
+        article = article.replace(
+            'published_item_ids: ["item-1"]',
+            'published_item_ids: ["item-1", "item-2"]',
+        )
+        article = article.replace(
+            'event_keys: ["example:agent:2026-09-01"]',
+            'event_keys: ["example:agent:2026-09-01", "example:constraint:2026-09-01"]',
+        )
+        article = article.replace("\n---\n\n> 本記事", WILDCARD + "\n---\n\n> 本記事")
+        result = self.check(article)
         self.assertEqual([], result.errors)
 
     def test_source_count_mismatch(self):
@@ -72,6 +106,10 @@ class ValidateGptArticleTest(unittest.TestCase):
     def test_blank_date_is_rejected(self):
         result = self.check(VALID.replace("- 🕰️ 公開日時: 2026-09-01", "- 🕰️ 公開日時:"))
         self.assertTrue(any("date line" in error for error in result.errors))
+
+    def test_missing_traceability_is_rejected(self):
+        result = self.check(VALID.replace('event_keys: ["example:agent:2026-09-01"]\n', ""))
+        self.assertTrue(any("event_keys" in error for error in result.errors))
 
     def test_historical_article_is_ignored(self):
         result = self.check(VALID.replace("ChatGPT Scheduled Writer", "OpenClaw Editorial System"))
