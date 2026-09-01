@@ -32,6 +32,8 @@ Use only claims whose `verification_status` is `verified` or `partially_verified
 
 Do not convert attributed claims into neutral fact. Use formulations such as “the company reports,” “the survey found,” or “the authors report” when the evidence is self-reported, sponsored, or not independently reproduced.
 
+Canonicalize every public URL before writing. Remove `utm_*`, `src_trk`, `gclid`, `fbclid`, email-campaign identifiers, and other tracking parameters. Never copy ChatGPT citation tokens or internal source identifiers into Markdown.
+
 ## Depth hierarchy
 
 A flat list of equally short summaries is not acceptable. Use the Curator tier and the character budgets in `policy.yaml`:
@@ -50,8 +52,10 @@ Preserve the selected item count unless source verification fails. Do not reduce
 - `content/daily/YYYY-MM-DD-daily-signal.md`
 - commit message: `content: publish GPT Daily Signal YYYY-MM-DD`
 
-Use the existing Hugo front-matter convention:
+Use the existing Hugo front-matter convention and add explicit traceability fields:
 
+- `article_schema: "daily-signal-article/v1"`
+- `policy_version: 2`
 - `title`
 - `date`
 - `draft: false`
@@ -61,20 +65,35 @@ Use the existing Hugo front-matter convention:
 - `generated_by: "ChatGPT Scheduled Writer"`
 - `model`
 - `source_count`
+- `selected_count`
+- `wildcard_count`
+- `curated_source: "gpt_handoff/curated/YYYY-MM-DD.json"`
+- `published_item_ids`
+- `event_keys`
 - `generation_cost_usd: 0`
+
+`source_count` must equal `selected_count + wildcard_count`. `published_item_ids` and `event_keys` must be unique arrays in final article order and each must contain exactly `source_count` entries.
 
 For `model`, use the exact runtime identifier only when the task environment exposes it. Otherwise write `ChatGPT Scheduled Task`. Never assert a specific model name merely because it appeared in an old prompt or previous article.
 
 The body keeps the established structure:
 
 1. `## 今日のご案内 ☕✨`
-2. numbered selected items in Curator order
+2. sequentially numbered selected items in Curator order
 3. explicit `**💡 注目しておきたい理由:**`
 4. primary source metadata and up to three genuinely useful supporting references
 5. `# 今日の紛れ枠` when wildcard items exist
 6. final source-warning blockquote
 
 Every numbered item must contain enough verified detail to reconstruct why it was selected. Do not use generic filler such as “今後が注目される” without naming the mechanism, dependency, risk, or decision affected.
+
+Each wildcard uses a `###` heading, factual text, `**追う理由:**`, and the same exact primary-source line format used by numbered items:
+
+```markdown
+- 🔗 情報源: [発行主体](https://canonical.example/source)
+```
+
+This source line is included in `source_count`. Omit the wildcard section entirely when `wildcard_count` is zero.
 
 ## Two-phase preflight inside the task
 
@@ -86,13 +105,13 @@ Construct the complete Markdown in memory, then check:
 
 - same-day curated status is `ready`
 - all material claims map to an allowed claim source
-- all URLs are public HTTPS
+- all URLs are public HTTPS and tracking-free
 - article order matches `editorial_plan.ordered_ids`
 - each lead/report/standard/wildcard meets its required depth
 - report methodology and caveats are preserved
-- `source_count` equals the number of actually published selected plus wildcard items
+- source, selected, wildcard, item-ID, and event-key counts are mutually consistent
 - front matter is syntactically coherent and description is at most 240 characters
-- no internal terms such as Scout, Curator, prompt, handoff, or agent persona appear in public prose
+- no internal terms such as Scout, Curator, handoff paths, or agent persona appear in public prose
 - no first-person editorial voice appears
 - no missing date has been invented
 - no same-day article already exists
@@ -100,6 +119,8 @@ Construct the complete Markdown in memory, then check:
 ### Phase 2: commit
 
 Only after every preflight check passes may the Writer create the new article. Never overwrite or update an existing same-day article.
+
+The Pages workflow runs `scripts/validate_gpt_articles.py` before Hugo. That deterministic gate validates GPT-authored article structure, traceability, counts, canonical HTTPS links, absence of internal citation tokens, section depth, and wildcard formatting. A failed validator blocks deployment even though the Git commit exists.
 
 ## Information-retention audit
 
