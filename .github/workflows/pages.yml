@@ -24,6 +24,10 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+      - name: Test GPT article validator
+        run: python3 -m unittest discover -s tests -p 'test_validate_gpt_articles.py'
+      - name: Validate scheduled GPT articles
+        run: python3 scripts/validate_gpt_articles.py
       - name: Install Hugo
         run: |
           wget -q -O "${RUNNER_TEMP}/hugo.deb" "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb"
