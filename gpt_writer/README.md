@@ -101,6 +101,29 @@ Construct the complete Markdown in memory, then check:
 
 Only after every preflight check passes may the Writer create the new article. Never overwrite or update an existing same-day article.
 
+## Information-retention audit
+
+Before commit, compare the curated artifact with the final Markdown. The purpose is to detect silent simplification, not to reward verbosity.
+
+Calculate and retain these metrics:
+
+- `curated_selected_count`
+- `published_selected_count`
+- `curated_wildcard_count`
+- `published_wildcard_count`
+- `curated_claim_count`
+- `published_claim_count`
+- `dropped_item_ids`
+- `dropped_claim_count`
+- `verification_failure_count`
+- `report_metric_count`
+- `published_report_metric_count`
+- `article_character_count`
+
+A claim counts as published only when its factual substance appears in the article with the same attribution and material qualification. Rewording does not count as loss; removing the denominator, caveat, attribution, scope, or benchmark provenance does.
+
+If a retention ratio falls below a threshold in `policy.yaml`, the Writer must either revise the draft before commit or publish with an explicit state warning explaining why evidence-based removal was necessary. It must not silently improve the metric by merging distinct claims into a vague sentence.
+
 ## Safety and idempotency
 
 - Never overwrite an existing same-day article.
@@ -129,6 +152,7 @@ After a successful article commit, write `naoyamd/daily-signal-collector/gpt_han
 - `organizations`
 - `tags`
 - `title`
+- `quality_metrics`
 
 Then update `gpt_handoff/state/published-index.json`, retaining the compact history window defined in `policy.yaml`. This index is the primary duplicate-control input for later Curator runs; dated receipts remain the audit trail.
 
