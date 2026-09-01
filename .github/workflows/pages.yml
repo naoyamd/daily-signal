@@ -3,6 +3,18 @@ name: Deploy Hugo site
 on:
   push:
     branches: [main]
+    paths:
+      - "content/**"
+      - "assets/**"
+      - "data/**"
+      - "layouts/**"
+      - "static/**"
+      - "themes/**"
+      - ".gitmodules"
+      - "hugo.toml"
+      - "scripts/validate_gpt_articles.py"
+      - "tests/test_validate_gpt_articles.py"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -12,7 +24,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
