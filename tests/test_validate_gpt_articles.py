@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from itertools import product
 from pathlib import Path
 
 from scripts.validate_gpt_articles import validate_article
@@ -93,6 +94,62 @@ class ValidateGptArticleTest(unittest.TestCase):
     def test_internal_term_is_rejected(self):
         result = self.check(VALID.replace("設計支援AI", "Signal Curator"))
         self.assertTrue(any("Curator" in error for error in result.errors))
+
+    def test_product_names_in_title_and_prose_are_allowed(self):
+        for name in ("EmbeddingGemma", "embeddinggemma", "Gemma", "lemma"):
+            for original in ("工学ツールを実行するAgent", "設計支援AI"):
+                with self.subTest(name=name, location=original):
+                    result = self.check(VALID.replace(original, name))
+                    self.assertTrue(result.checked)
+                    self.assertEqual([], result.errors)
+
+    def test_embeddinggemma_canonical_source_url_is_allowed(self):
+        result = self.check(VALID.replace(
+            "https://example.com/release",
+            "https://blog.google/innovation-and-ai/technology/"
+            "developers-tools/embeddinggemma-2/",
+        ))
+        self.assertTrue(result.checked)
+        self.assertEqual([], result.errors)
+
+    def test_standalone_identity_all_case_variants_are_rejected(self):
+        for letters in product(*[(letter.lower(), letter.upper()) for letter in "Emma"]):
+            name = "".join(letters)
+            for original in ("工学ツールを実行するAgent", "設計支援AI"):
+                with self.subTest(name=name, location=original):
+                    result = self.check(VALID.replace(original, name))
+                    self.assertIn(
+                        "public body must use anonymous, non-first-person editorial voice",
+                        result.errors,
+                    )
+
+    def test_identity_with_punctuation_or_japanese_is_rejected(self):
+        for mention in (
+            "Emma's", "Emma’s", "(Emma)", "**Emma**", "_Emma_", "Emma2",
+            "Emma-news", "担当Emmaによる", "Emmaは", "エマ", "担当エマによる",
+        ):
+            with self.subTest(mention=mention):
+                result = self.check(VALID.replace("設計支援AI", mention))
+                self.assertIn(
+                    "public body must use anonymous, non-first-person editorial voice",
+                    result.errors,
+                )
+
+    def test_standalone_identity_in_url_is_still_rejected(self):
+        result = self.check(VALID.replace("https://example.com/release", "https://example.com/emma/"))
+        self.assertIn(
+            "public body must use anonymous, non-first-person editorial voice",
+            result.errors,
+        )
+
+    def test_first_person_editorial_voice_is_still_rejected(self):
+        for mention in ("私は", "わたしが", "筆者の", "執筆者として"):
+            with self.subTest(mention=mention):
+                result = self.check(VALID.replace("設計支援AI", mention))
+                self.assertIn(
+                    "public body must use anonymous, non-first-person editorial voice",
+                    result.errors,
+                )
 
     def test_tracking_url_is_rejected(self):
         result = self.check(

@@ -46,7 +46,9 @@ FORBIDDEN_PUBLIC_PATTERNS = {
     "internal Curator term": re.compile(r"Signal Curator", re.IGNORECASE),
     "internal handoff path": re.compile(r"gpt_handoff", re.IGNORECASE),
 }
-IDENTITY_PATTERN = re.compile(r"Emma|エマ", re.IGNORECASE)
+# English letter boundaries avoid matching names such as EmbeddingGemma while
+# retaining mentions adjacent to Japanese text (which Unicode \b would miss).
+IDENTITY_PATTERN = re.compile(r"(?<![a-z])Emma(?![a-z])|エマ", re.IGNORECASE)
 SELF_REFERENCE_PATTERN = re.compile(r"(?:私|わたし|筆者|執筆者)(?:は|が|の|として)")
 PRIMARY_SOURCE_PATTERN = re.compile(
     r"^- 🔗 情報源:\s*\[[^\]]+\]\((https://[^)\s]+)\)\s*$", re.MULTILINE
