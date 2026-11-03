@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Validate ChatGPT-authored Daily Signal Markdown before Hugo deployment.
+"""Validate structured Daily Signal Markdown before Hugo deployment.
 
-The validator intentionally targets only articles whose front matter declares
-``generated_by: ChatGPT Scheduled Writer``. Historical content is left alone.
+The validator checks every article that declares
+``article_schema: daily-signal-article/v1``, regardless of which writer
+(``generated_by``) produced it. Historical content without that schema is
+left alone.
 It uses only the Python standard library so it can run in the existing Pages
 workflow without installing dependencies.
 """
@@ -19,8 +21,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
-GENERATED_BY = "ChatGPT Scheduled Writer"
+GENERATED_BY = "ChatGPT Scheduled Writer"  # kept for backward compatibility
 ARTICLE_SCHEMA = "daily-signal-article/v1"
+SCHEMA_LINE_PATTERN = re.compile(
+    r"^article_schema:\s*[\"']?" + re.escape(ARTICLE_SCHEMA) + r"[\"']?\s*$", re.MULTILINE
+)
 REQUIRED_FRONT_MATTER = {
     "article_schema",
     "policy_version",
@@ -140,8 +145,9 @@ def _validate_front_matter(path: Path, front: dict[str, Any], result: Validation
     policy_version = front.get("policy_version")
     if isinstance(policy_version, bool) or not isinstance(policy_version, int) or policy_version < 1:
         result.errors.append("policy_version must be a positive integer")
-    if front.get("generated_by") != GENERATED_BY:
-        result.errors.append(f"generated_by must be {GENERATED_BY!r}")
+    generated_by = front.get("generated_by")
+    if not isinstance(generated_by, str) or not generated_by.strip():
+        result.errors.append("generated_by must be a non-empty string")
     if front.get("draft") is not False:
         result.errors.append("draft must be false")
 
@@ -199,9 +205,14 @@ def _validate_front_matter(path: Path, front: dict[str, Any], result: Validation
         local_date = filename_match.group(1)
         if date_value.date().isoformat() != local_date:
             result.errors.append("front matter date does not match article filename")
-        expected_source = f"gpt_handoff/curated/{local_date}.json"
-        if front.get("curated_source") != expected_source:
-            result.errors.append(f"curated_source must be {expected_source!r}")
+        allowed_sources = (
+            f"gpt_handoff/curated/{local_date}.json",
+            f"direct-research/{local_date}",
+        )
+        if front.get("curated_source") not in allowed_sources:
+            result.errors.append(
+                "curated_source must be one of: " + ", ".join(repr(s) for s in allowed_sources)
+            )
     elif not isinstance(front.get("curated_source"), str) or not front.get("curated_source"):
         result.errors.append("curated_source must be a non-empty string")
 
@@ -327,8 +338,9 @@ def validate_article(path: Path) -> ValidationResult:
         result.errors.append(f"could not read file: {exc}")
         return result
 
-    # Historical and manually authored articles are intentionally outside this gate.
-    if f'generated_by: "{GENERATED_BY}"' not in text and f"generated_by: '{GENERATED_BY}'" not in text:
+    # Historical articles without the structured schema are outside this gate.
+    # Every schema-v1 article is checked regardless of its writer.
+    if not SCHEMA_LINE_PATTERN.search(text.replace("\r\n", "\n")):
         return result
     result.checked = True
     try:
@@ -372,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {path}: {error}", file=sys.stderr)
         if result.errors:
             failed += 1
-    print(f"validated {checked} ChatGPT-authored article(s); failures={failed}")
+    print(f"validated {checked} schema-v1 article(s); failures={failed}")
     return 1 if failed else 0
 
 

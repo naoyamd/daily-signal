@@ -169,9 +169,32 @@ class ValidateGptArticleTest(unittest.TestCase):
         self.assertTrue(any("event_keys" in error for error in result.errors))
 
     def test_historical_article_is_ignored(self):
-        result = self.check(VALID.replace("ChatGPT Scheduled Writer", "OpenClaw Editorial System"))
+        result = self.check(VALID.replace('article_schema: "daily-signal-article/v1"\n', ""))
         self.assertFalse(result.checked)
         self.assertEqual([], result.errors)
+
+    def test_other_writer_is_checked(self):
+        result = self.check(VALID.replace("ChatGPT Scheduled Writer", "Grok Bot Scheduled Writer"))
+        self.assertTrue(result.checked)
+        self.assertEqual([], result.errors)
+
+    def test_other_writer_errors_are_reported(self):
+        text = VALID.replace("ChatGPT Scheduled Writer", "Grok Bot Scheduled Writer")
+        result = self.check(text.replace("## 今日のご案内 ☕✨", "## 今日"))
+        self.assertTrue(result.checked)
+        self.assertTrue(any("opening heading" in error for error in result.errors))
+
+    def test_direct_research_source_is_accepted(self):
+        result = self.check(
+            VALID.replace("gpt_handoff/curated/2026-09-02.json", "direct-research/2026-09-02")
+        )
+        self.assertEqual([], result.errors)
+
+    def test_direct_research_wrong_date_is_rejected(self):
+        result = self.check(
+            VALID.replace("gpt_handoff/curated/2026-09-02.json", "direct-research/2026-09-03")
+        )
+        self.assertTrue(any("curated_source" in error for error in result.errors))
 
 
 if __name__ == "__main__":
