@@ -14,7 +14,7 @@ selected_count: 12
 wildcard_count: 2
 curated_source: "direct-research/2026-10-16"
 published_item_ids: ["r-neuroforge-residual-trust", "r-hodge-moe-airfrans", "c-mx3d-dnv-amc3", "r-imperial-turbo-diffusion-3d", "r-tno-rotor37-panoramic", "r-diffgeo-latent-diffusion", "r-f3no-frequency-flowmap", "c-cfs-genesis-sparc-twin", "c-hexagon-rocscience", "c-imec-nvidia-litho-ai", "r-feagpt-fea-agent", "r-neuroforge-selective-context", "w-am-cert-denominator", "w-metrology-denominator"]
-event_keys: ["neuroforge-cfd:2026-07", "hodge-moe-airfrans:2026-10-14", "mx3d-dnv-amc3:2026-09-30", "imperial-turbo-diffusion-3d:2026-07", "tno-rotor37:2026-09-13", "diffgeo-aiaa:2026-08-31", "f3no-flowmap:2026-10", "cfs-genesis-sparc:2026-10-08", "hexagon-rocscience:2026-10-09", "imec-nvidia-litho:2026-10-14", "feagpt:2025-10-24", "wildcard-am-cert:2026-10-16", "wildcard-metrology:2026-10-16"]
+event_keys: ["neuroforge-cfd:2026-07", "hodge-moe-airfrans:2026-10-14", "mx3d-dnv-amc3:2026-09-30", "imperial-turbo-diffusion-3d:2026-07", "tno-rotor37:2026-09-13", "diffgeo-aiaa:2026-08-31", "f3no-flowmap:2026-10", "cfs-genesis-sparc:2026-10-08", "hexagon-rocscience:2026-10-09", "imec-nvidia-litho:2026-10-14", "feagpt:2025-10-24", "neuroforge-selective-prediction:2026-07", "wildcard-am-cert:2026-10-16", "wildcard-metrology:2026-10-16"]
 generation_cost_usd: 0
 ---
 
